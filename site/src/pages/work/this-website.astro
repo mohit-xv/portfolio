@@ -1,0 +1,386 @@
+---
+import Base from '../../layouts/Base.astro';
+import Nav from '../../components/sections/Nav.astro';
+import Eyebrow from '../../components/ui/Eyebrow.astro';
+import Button from '../../components/ui/Button.astro';
+import Footer from '../../components/sections/Footer.astro';
+
+// Architecture components for the interactive diagram (Phase 4: add hover states)
+const arch = [
+  { name: 'S3 Bucket',     role: 'Static asset storage',          cost: '₹0 (free tier: 5 GB)',     module: 'infra/modules/s3' },
+  { name: 'CloudFront',    role: 'Global CDN + HTTPS',             cost: '₹0 (free tier: 1 TB/mo)',  module: 'infra/modules/cdn' },
+  { name: 'ACM',           role: 'TLS certificate',                cost: '₹0',                        module: 'infra/modules/cdn' },
+  { name: 'Lambda',        role: 'Contact form + analytics APIs',  cost: '₹0 (1M req free)',          module: 'infra/modules/api' },
+  { name: 'API Gateway',   role: 'Lambda HTTP front door',         cost: '₹0 (1M req free)',          module: 'infra/modules/api' },
+  { name: 'DynamoDB',      role: 'Analytics + stats cache',        cost: '₹0 (25 GB free)',           module: 'infra/modules/db'  },
+  { name: 'SES',           role: 'Contact form emails',            cost: '₹0 (62k emails/mo free)',   module: 'infra/modules/ses' },
+  { name: 'GitHub Actions',role: 'CI/CD via OIDC — no stored keys',cost: '₹0',                       module: '.github/workflows' },
+];
+---
+
+<Base
+  title="Exhibit I — This Website"
+  description="Case study: building a ₹0/month AWS-hosted portfolio. Every cost decision documented. Terraform end-to-end, OIDC deploy pipeline."
+>
+  <Nav />
+  <main>
+
+    <!-- Case study header -->
+    <section class="case-hero section">
+      <div class="container">
+        <Eyebrow>Exhibit No. I</Eyebrow>
+        <h1 class="case-hero__heading">
+          This Website
+        </h1>
+        <p class="case-hero__role">FinOps · Infrastructure · DevOps</p>
+
+        <!-- The receipt — the centrepiece claim -->
+        <div class="running-cost" aria-live="polite">
+          <p class="running-cost__label">Running cost this month</p>
+          <p class="running-cost__value">₹0</p>
+          <p class="running-cost__note">
+            AWS free-tier verified · updated monthly via EventBridge + DynamoDB cache
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- TL;DR -->
+    <section class="case-summary section">
+      <div class="container">
+        <div class="case-meta-grid">
+          <div class="case-meta-item">
+            <p class="case-meta-label">Timeline</p>
+            <p class="case-meta-value">MMXXIV → MMXXV</p>
+          </div>
+          <div class="case-meta-item">
+            <p class="case-meta-label">Stack</p>
+            <p class="case-meta-value">Astro 7 · AWS S3 · CloudFront · Lambda · DynamoDB · Terraform</p>
+          </div>
+          <div class="case-meta-item">
+            <p class="case-meta-label">Deploy</p>
+            <p class="case-meta-value">GitHub Actions OIDC — zero stored credentials</p>
+          </div>
+          <div class="case-meta-item">
+            <p class="case-meta-label">Monthly cost</p>
+            <p class="case-meta-value case-meta-value--gold">₹0.00</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Problem -->
+    <section class="case-section section">
+      <div class="container">
+        <div class="case-content">
+          <h2 class="case-section__heading">The Problem</h2>
+          <div class="prose">
+            <p>
+              A portfolio site has one job: demonstrate the work. For an engineer
+              whose work is specifically about removing cloud waste, the site itself is
+              the primary proof of concept. Running it on Vercel's free hobby tier would
+              contradict the brand at the infrastructure layer — Vercel prohibits commercial
+              use on that tier, and more importantly, it would mean choosing managed magic
+              over first-principles engineering.
+            </p>
+            <p>
+              The constraint was deliberately imposed: build it on AWS, keep the bill
+              at ₹0, document every decision, and let the site serve as a live demonstration
+              of the exact capability being claimed.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture diagram -->
+    <section class="case-section section">
+      <div class="container">
+        <div class="case-content">
+          <h2 class="case-section__heading">Architecture</h2>
+          <p class="case-arch-note">
+            Hover any component to see its role, monthly cost, and Terraform module.
+            Phase 4 adds interactive hover states — currently text-only.
+          </p>
+
+          <div class="arch-grid">
+            {arch.map((component) => (
+              <div class="arch-component">
+                <span class="arch-component__name">{component.name}</span>
+                <span class="arch-component__role">{component.role}</span>
+                <span class="arch-component__cost">{component.cost}</span>
+                <span class="arch-component__module">{component.module}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Key decisions -->
+    <section class="case-section section">
+      <div class="container">
+        <div class="case-content">
+          <h2 class="case-section__heading">Key Decisions</h2>
+          <div class="prose">
+            <h3>AWS over Vercel</h3>
+            <p>
+              Vercel's free Hobby tier is non-commercial. The portfolio is commercial
+              (it supports a job search and potential freelance pipeline). More importantly,
+              a FinOps portfolio on fully managed hosting defeats its own thesis.
+              S3 + CloudFront is the correct tool: static files, global CDN, free tier
+              covers the load comfortably. Migration to Vercel later is one adapter swap.
+            </p>
+
+            <h3>Terraform end-to-end</h3>
+            <p>
+              Every resource — S3 bucket, CloudFront distribution, ACM certificate,
+              Lambda functions, API Gateway, DynamoDB tables — is Terraform-managed.
+              A fresh clone should reach <code>terraform apply</code> → live in under
+              ten minutes. The entire infrastructure fits in three modules:
+              <code>site</code>, <code>api</code>, <code>db</code>.
+            </p>
+
+            <h3>OIDC deploy — no stored keys</h3>
+            <p>
+              GitHub Actions authenticates to AWS using OpenID Connect federation.
+              No AWS access keys exist in GitHub Secrets. The IAM role trusts the
+              GitHub OIDC provider and is scoped to the minimum permissions needed
+              for the deploy: <code>s3:PutObject</code>, <code>cloudfront:CreateInvalidation</code>.
+              Zero stored credentials means zero credential-rotation surface.
+            </p>
+
+            <h3>Contact via Lambda + SES, not mailto</h3>
+            <p>
+              A bare <code>mailto:</code> link exposes the email address to harvesters.
+              The contact form POST hits API Gateway → Lambda → SES, which delivers
+              to a verified Gmail address. A secondary Telegram bot ping arrives in
+              under three seconds. Cloudflare Turnstile plus a honeypot field handle
+              spam at the gate.
+            </p>
+
+            <h3>Self-rolled analytics — zero trackers</h3>
+            <p>
+              A cookieless collector Lambda writes page-view events to DynamoDB.
+              No third-party script ships. No GDPR banner needed. The analytics
+              cost at this traffic level is effectively zero.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Links -->
+    <section class="case-section section">
+      <div class="container">
+        <div class="case-links">
+          <Button href="https://github.com/mohit-xv" variant="ghost" external>
+            View on GitHub
+          </Button>
+          <Button href="/work/stock-screener" variant="text">
+            Next: Exhibit II →
+          </Button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  /* Case study hero */
+  .case-hero__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    color: var(--bone);
+    margin-top: var(--space-4);
+  }
+
+  .case-hero__role {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-widest);
+    color: color-mix(in srgb, var(--bone) 45%, transparent);
+    margin-top: var(--space-3);
+    text-transform: uppercase;
+  }
+
+  /* Running cost module */
+  .running-cost {
+    margin-top: var(--space-16);
+    padding: var(--space-10) var(--space-12);
+    background: var(--smoke);
+    border: 1px solid color-mix(in srgb, var(--gold) 30%, transparent);
+    border-radius: var(--radius-sm);
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .running-cost__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--gold) 70%, transparent);
+  }
+
+  .running-cost__value {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: 300;
+    color: var(--gold-bright);
+    letter-spacing: var(--tracking-tight);
+    line-height: 1;
+  }
+
+  .running-cost__note {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in srgb, var(--bone) 35%, transparent);
+    margin-top: var(--space-2);
+  }
+
+  /* Metadata grid */
+  .case-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-4) var(--space-8);
+    padding: var(--space-8) 0;
+    border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  }
+
+  .case-meta-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: var(--space-2);
+  }
+
+  .case-meta-value {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--bone);
+    line-height: var(--leading-normal);
+  }
+
+  .case-meta-value--gold {
+    font-family: var(--font-mono);
+    font-size: var(--text-xl);
+    color: var(--gold-bright);
+  }
+
+  /* Section content */
+  .case-content {
+    max-width: var(--max-w-prose);
+  }
+
+  .case-section__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 400;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    margin-bottom: var(--space-8);
+  }
+
+  .case-arch-note {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in srgb, var(--bone) 35%, transparent);
+    margin-bottom: var(--space-8);
+    max-width: 60ch;
+  }
+
+  /* Architecture grid */
+  .arch-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+    max-width: 860px;
+  }
+
+  .arch-component {
+    display: grid;
+    grid-template-rows: auto auto auto auto;
+    gap: var(--space-1);
+    padding: var(--space-6);
+    background: var(--smoke);
+    border: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+    border-radius: var(--radius-sm);
+    transition:
+      border-color var(--dur-fast) var(--ease-expo),
+      background-color var(--dur-fast) var(--ease-expo);
+  }
+
+  .arch-component:hover {
+    border-color: color-mix(in srgb, var(--gold) 40%, transparent);
+    background-color: color-mix(in srgb, var(--gold) 3%, var(--smoke));
+  }
+
+  .arch-component__name {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 400;
+    color: var(--bone);
+  }
+
+  .arch-component__role {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: color-mix(in srgb, var(--bone) 65%, transparent);
+  }
+
+  .arch-component__cost {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--gold-bright);
+    letter-spacing: var(--tracking-wide);
+    margin-top: var(--space-2);
+  }
+
+  .arch-component__module {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: color-mix(in srgb, var(--bone) 30%, transparent);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  /* Link row */
+  .case-links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    flex-wrap: wrap;
+    padding-top: var(--space-8);
+    border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  }
+
+  @media (max-width: 768px) {
+    .case-meta-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .arch-grid {
+      grid-template-columns: 1fr;
+    }
+    .case-hero__heading {
+      font-size: clamp(2.5rem, 12vw, 5rem);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .case-meta-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

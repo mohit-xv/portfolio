@@ -1,0 +1,27 @@
+---
+/**
+ * Eyebrow — Space Mono, all-caps, gold, used as section labels.
+ * Usage: <Eyebrow>Part I · Selected Work</Eyebrow>
+ */
+interface Props {
+  tag?: 'p' | 'span' | 'div';
+  class?: string;
+}
+const { tag: Tag = 'p', class: className } = Astro.props;
+---
+
+<Tag class:list={['eyebrow', className]}>
+  <slot />
+</Tag>
+
+<style>
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 400;
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--gold);
+    line-height: 1;
+  }
+</style>

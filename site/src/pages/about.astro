@@ -1,0 +1,274 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/sections/Nav.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Footer from '../components/sections/Footer.astro';
+
+const approach = [
+  {
+    label: 'Audit',
+    description: 'The bill first. Every engagement starts by reading the Cost Explorer without preconceptions — find where money leaks before deciding anything.',
+  },
+  {
+    label: 'Architect',
+    description: 'Design for zero idle cost. On-demand over always-on, serverless where it fits, reserved where it doesn\'t. The right size is the one you can justify at month end.',
+  },
+  {
+    label: 'Automate',
+    description: 'Terraform for every resource, GitHub Actions for every deploy, EventBridge for every schedule. If a human clicks a console button, it should happen at most once.',
+  },
+  {
+    label: 'Account',
+    description: 'Cost as a first-class metric. Budgets alerts, billing dashboards, and ₹0/mo targets on every project. The work isn\'t done until the bill reflects it.',
+  },
+];
+---
+
+<Base
+  title="About"
+  description="Mohit Singh — cloud cost optimisation engineer, DevOps practitioner, 5× AWS Certified. How he thinks about infrastructure."
+>
+  <Nav />
+  <main class="about-page">
+
+    <!-- Hero -->
+    <section class="about-hero section">
+      <div class="container">
+        <Eyebrow>Part II</Eyebrow>
+        <h1 class="about-hero__heading">
+          The engineer<br />behind the bill.
+        </h1>
+
+        <!-- Portrait slot — reserved until shoot -->
+        <div class="about-portrait" aria-hidden="true" title="Portrait coming">
+          <span class="about-portrait__placeholder">M</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Narrative -->
+    <section class="about-narrative section">
+      <div class="container">
+        <div class="prose about-prose">
+          <p>
+            I'm Mohit Singh — a cloud infrastructure and DevOps engineer obsessed with one thing:
+            removing waste from cloud bills without removing capability from the systems.
+          </p>
+          <p>
+            The credential line reads 5× AWS Certified. The honest line is: I learned how AWS
+            charges for things the hard way, watching a side project rack up bills for compute
+            that ran eight hours a day doing nothing. That bill was the education.
+          </p>
+          <p>
+            My background is unusual for this domain — I spent years doing video editing and
+            motion work before infrastructure. That's where the eye for pace, discipline, and
+            cinematic restraint comes from. A well-designed system and a well-cut sequence share
+            the same principle: every frame, every resource, earns its place.
+          </p>
+          <p>
+            This site exists on <strong>AWS S3 + CloudFront</strong>, deployed by
+            <strong>Terraform</strong> from a GitHub Actions OIDC pipeline. The running cost is
+            ₹0. The architecture is documented as a case study — the receipt is inside the work.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Approach -->
+    <section class="about-approach section">
+      <div class="container">
+        <Eyebrow>Approach</Eyebrow>
+        <h2 class="about-approach__heading">
+          How I think about infrastructure
+        </h2>
+        <p class="about-approach__sub">
+          Four phases, every engagement, no exceptions.
+        </p>
+
+        <ol class="approach-list">
+          {approach.map((step, i) => (
+            <li class="approach-item">
+              <span class="approach-item__number">0{i + 1}</span>
+              <div class="approach-item__body">
+                <h3 class="approach-item__label">{step.label}</h3>
+                <p class="approach-item__desc">{step.description}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <!-- Background quick-facts -->
+    <section class="about-facts section">
+      <div class="container">
+        <dl class="facts-grid">
+          <div class="fact">
+            <dt class="fact__label">Certifications</dt>
+            <dd class="fact__value">5× AWS Certified</dd>
+          </div>
+          <div class="fact">
+            <dt class="fact__label">Primary stack</dt>
+            <dd class="fact__value">AWS · Terraform · Python · Astro</dd>
+          </div>
+          <div class="fact">
+            <dt class="fact__label">Also built</dt>
+            <dd class="fact__value">Video edits · Motion work · ML tooling (SHROOM)</dd>
+          </div>
+          <div class="fact">
+            <dt class="fact__label">Currently building</dt>
+            <dd class="fact__value">This site. Public repo. Every cost decision documented.</dd>
+          </div>
+          <div class="fact">
+            <dt class="fact__label">Based in</dt>
+            <dd class="fact__value">India</dd>
+          </div>
+          <div class="fact">
+            <dt class="fact__label">Open to</dt>
+            <dd class="fact__value">Roles, internships, and "your AWS bill looks wrong" calls</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  /* Hero */
+  .about-hero__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    color: var(--bone);
+    margin-top: var(--space-4);
+    max-width: 16ch;
+  }
+
+  /* Portrait placeholder */
+  .about-portrait {
+    margin-top: var(--space-16);
+    width: 220px;
+    height: 280px;
+    background: var(--smoke);
+    border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+  }
+
+  .about-portrait__placeholder {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: 300;
+    color: color-mix(in srgb, var(--gold) 30%, transparent);
+  }
+
+  /* Narrative prose */
+  .about-prose {
+    max-width: var(--max-w-prose);
+  }
+
+  /* Approach */
+  .about-approach__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .about-approach__sub {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: color-mix(in srgb, var(--bone) 50%, transparent);
+    margin-bottom: var(--space-12);
+  }
+
+  .approach-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 760px;
+  }
+
+  .approach-item {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: var(--space-8);
+    padding: var(--space-8) 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+    align-items: start;
+  }
+
+  .approach-item:first-child {
+    border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  }
+
+  .approach-item__number {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--gold);
+    padding-top: 2px;
+  }
+
+  .approach-item__label {
+    font-family: var(--font-display);
+    font-size: var(--text-xl);
+    font-weight: 400;
+    color: var(--bone);
+    margin-bottom: var(--space-3);
+  }
+
+  .approach-item__desc {
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    line-height: var(--leading-loose);
+    color: color-mix(in srgb, var(--bone) 70%, transparent);
+  }
+
+  /* Facts grid */
+  .facts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8) var(--space-16);
+    max-width: 800px;
+  }
+
+  .fact__label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: var(--space-2);
+  }
+
+  .fact__value {
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    color: var(--bone);
+    line-height: var(--leading-normal);
+  }
+
+  @media (max-width: 640px) {
+    .about-hero__heading {
+      font-size: clamp(2.5rem, 12vw, 4.5rem);
+    }
+    .facts-grid {
+      grid-template-columns: 1fr;
+      gap: var(--space-6);
+    }
+    .approach-item {
+      grid-template-columns: 2rem 1fr;
+      gap: var(--space-5);
+    }
+  }
+</style>

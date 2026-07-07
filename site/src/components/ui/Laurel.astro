@@ -1,0 +1,136 @@
+---
+/**
+ * Laurel — film-award laurel wreath styling for AWS certifications.
+ * Purely typographic; no images in the laurel itself.
+ * Badge image appears below as visual confirmation.
+ */
+interface Props {
+  name: string;
+  shortName: string;
+  level: string;
+  year: string;
+  href: string;
+  badgeImage: string;
+}
+
+const { name, shortName, level, year, href, badgeImage } = Astro.props;
+---
+
+<a href={href} class="laurel" target="_blank" rel="noopener noreferrer">
+  <div class="laurel__badge">
+    <img
+      src={badgeImage}
+      alt={`${name} badge`}
+      width="80"
+      height="80"
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+  <div class="laurel__text">
+    <span class="laurel__level">{level}</span>
+    <span class="laurel__name">{shortName}</span>
+    <span class="laurel__year">{year}</span>
+  </div>
+</a>
+
+<style>
+  .laurel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    text-decoration: none;
+    color: var(--bone);
+    padding: var(--space-8) var(--space-6);
+    border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+    border-radius: var(--radius-sm);
+    transition:
+      border-color var(--dur-fast) var(--ease-expo),
+      background-color var(--dur-fast) var(--ease-expo);
+    text-align: center;
+  }
+
+  .laurel:hover {
+    border-color: color-mix(in srgb, var(--gold) 50%, transparent);
+    background-color: color-mix(in srgb, var(--gold) 4%, transparent);
+  }
+
+  .laurel:hover .laurel__name {
+    color: var(--gold-bright);
+  }
+
+  .laurel:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+
+  /* Badge image */
+  .laurel__badge img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    filter: saturate(0.8) brightness(0.95);
+    transition: filter var(--dur-fast) var(--ease-expo);
+  }
+
+  .laurel:hover .laurel__badge img {
+    filter: saturate(1) brightness(1.05);
+  }
+
+  .laurel__text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  /* "AWS Certified" level line — before the wreath frame */
+  .laurel__level {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--gold) 70%, transparent);
+  }
+
+  .laurel__level::before {
+    content: '≋ ';
+    letter-spacing: 0;
+  }
+
+  .laurel__level::after {
+    content: ' ≋';
+    letter-spacing: 0;
+  }
+
+  /* Cert name — the main label */
+  .laurel__name {
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    font-weight: 400;
+    line-height: var(--leading-snug);
+    color: var(--bone);
+    transition: color var(--dur-fast) var(--ease-expo);
+    /* Decorative en-dashes as laurel branches */
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .laurel__name::before,
+  .laurel__name::after {
+    content: '—';
+    color: var(--gold);
+    font-family: var(--font-ui);
+    font-size: 0.8em;
+  }
+
+  /* Year in roman numerals */
+  .laurel__year {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in srgb, var(--bone) 40%, transparent);
+  }
+</style>

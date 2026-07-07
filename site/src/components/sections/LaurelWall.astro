@@ -1,0 +1,77 @@
+---
+/**
+ * Laurel Wall — five AWS certifications rendered as film laurels.
+ * Linking per-badge to Credly public URLs.
+ */
+import Eyebrow from '../ui/Eyebrow.astro';
+import Laurel from '../ui/Laurel.astro';
+import { certs } from '../../data/certs';
+---
+
+<section class="laurel-wall section" aria-label="AWS Certifications">
+  <div class="container">
+    <Eyebrow>Verified</Eyebrow>
+    <h2 class="laurel-wall__heading">5× AWS Certified</h2>
+    <p class="laurel-wall__sub">
+      Every badge links to its Credly record. No claims without receipts.
+    </p>
+
+    <div class="laurel-wall__grid">
+      {certs.map((cert) => (
+        <Laurel
+          name={cert.name}
+          shortName={cert.shortName}
+          level={cert.level}
+          year={cert.year}
+          href={cert.credly}
+          badgeImage={cert.badgeImage}
+        />
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .laurel-wall__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+
+  .laurel-wall__sub {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: color-mix(in srgb, var(--bone) 50%, transparent);
+    margin-bottom: var(--space-12);
+    max-width: 42ch;
+  }
+
+  .laurel-wall__grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-4);
+  }
+
+  @media (max-width: 1024px) {
+    .laurel-wall__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .laurel-wall__grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--space-3);
+    }
+  }
+
+  @media (max-width: 360px) {
+    .laurel-wall__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

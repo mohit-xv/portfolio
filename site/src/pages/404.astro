@@ -1,0 +1,108 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/sections/Nav.astro';
+import Footer from '../components/sections/Footer.astro';
+---
+
+<Base title="404" noIndex>
+  <Nav />
+  <main class="not-found">
+    <div class="container not-found__inner">
+
+      <p class="not-found__eyebrow">Error 404</p>
+
+      <!-- The Godfather wink — exactly one, lives here -->
+      <h1 class="not-found__heading">
+        I'm gonna make you<br />
+        a page you<br />
+        can't find.
+      </h1>
+
+      <p class="not-found__sub">
+        The page you're looking for sleeps with the fishes.
+      </p>
+
+      <div class="not-found__links">
+        <a href="/" class="not-found__home">← Return to the homepage</a>
+        <a href="/work/this-website" class="not-found__work">See the work →</a>
+      </div>
+
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .not-found {
+    min-height: 80svh;
+    display: flex;
+    align-items: center;
+  }
+
+  .not-found__inner {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .not-found__eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .not-found__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: 300;
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    max-width: 18ch;
+  }
+
+  .not-found__sub {
+    font-family: var(--font-ui);
+    font-size: var(--text-lg);
+    color: color-mix(in srgb, var(--bone) 50%, transparent);
+    font-style: italic;
+  }
+
+  .not-found__links {
+    display: flex;
+    gap: var(--space-10);
+    margin-top: var(--space-8);
+    flex-wrap: wrap;
+  }
+
+  .not-found__home,
+  .not-found__work {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: var(--gold);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-expo);
+  }
+
+  .not-found__home:hover,
+  .not-found__work:hover {
+    color: var(--gold-bright);
+  }
+
+  .not-found__home:focus-visible,
+  .not-found__work:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+    border-radius: var(--radius-sm);
+  }
+
+  @media (max-width: 640px) {
+    .not-found__heading {
+      font-size: clamp(2.5rem, 12vw, 5rem);
+    }
+  }
+</style>

@@ -1,0 +1,376 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/sections/Nav.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Button from '../components/ui/Button.astro';
+import Footer from '../components/sections/Footer.astro';
+---
+
+<Base
+  title="Contact"
+  description="Get in touch with Mohit Singh — cloud cost optimisation, DevOps roles, or your AWS bill."
+>
+  <Nav />
+  <main class="contact-page">
+
+    <section class="contact-hero section">
+      <div class="container">
+        <Eyebrow>Get in touch</Eyebrow>
+        <h1 class="contact-hero__heading">
+          Start with a message.
+        </h1>
+        <p class="contact-hero__sub">
+          Replies within 48 hours. No sales deck, no discovery call.
+          Just a conversation about the problem.
+        </p>
+      </div>
+    </section>
+
+    <section class="contact-body section">
+      <div class="container">
+        <div class="contact-layout">
+
+          <!-- Left: form -->
+          <div class="contact-form-wrap">
+            <!-- Phase 5: Lambda → SES + Telegram backend wired here.
+                 Form currently sends to a placeholder action. -->
+            <form
+              class="contact-form"
+              method="POST"
+              action="/api/contact"
+              novalidate
+              id="contact-form"
+            >
+              <!-- Honeypot — hidden from real users, bots fill it -->
+              <input
+                type="text"
+                name="_hp"
+                tabindex="-1"
+                autocomplete="off"
+                aria-hidden="true"
+                class="contact-form__honeypot"
+              />
+
+              <div class="form-field">
+                <label for="name" class="form-label">Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  autocomplete="name"
+                  class="form-input"
+                  placeholder="Mohit Singh"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="email" class="form-label">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  required
+                  autocomplete="email"
+                  class="form-input"
+                  placeholder="you@company.com"
+                />
+              </div>
+
+              <div class="form-field">
+                <label for="context" class="form-label">Context</label>
+                <select id="context" name="context" class="form-select" required>
+                  <option value="" disabled selected>What's this about?</option>
+                  <option value="role">A role or internship</option>
+                  <option value="aws-bill">An AWS bill that looks wrong</option>
+                  <option value="project">A project or collaboration</option>
+                  <option value="other">Something else</option>
+                </select>
+              </div>
+
+              <div class="form-field">
+                <label for="message" class="form-label">Message</label>
+                <textarea
+                  id="message"
+                  name="message"
+                  required
+                  rows="5"
+                  class="form-textarea"
+                  placeholder="Brief context — what you're working on, what you need."
+                ></textarea>
+              </div>
+
+              <!-- Cloudflare Turnstile — Phase 5 -->
+              <div class="form-turnstile" id="turnstile-container">
+                <!-- cf-turnstile widget injected here at Phase 5 -->
+              </div>
+
+              <button type="submit" class="form-submit">
+                Send message
+                <span aria-hidden="true" class="form-submit__arrow">→</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Right: contact details -->
+          <aside class="contact-details">
+            <div class="contact-detail-group">
+              <p class="contact-detail-label">Email</p>
+              <a
+                href="mailto:mohitsinghdl2611@gmail.com"
+                class="contact-detail-value contact-detail-value--email"
+              >
+                mohitsinghdl2611@gmail.com
+              </a>
+            </div>
+
+            <div class="contact-detail-group">
+              <p class="contact-detail-label">Response time</p>
+              <p class="contact-detail-value">Within 48 hours</p>
+            </div>
+
+            <hr class="divider" />
+
+            <div class="contact-links">
+              <Button
+                href="https://github.com/mohit-xv"
+                variant="text"
+                external
+              >GitHub</Button>
+
+              <Button
+                href="https://www.credly.com/users/mohit-singh"
+                variant="text"
+                external
+              >Credly</Button>
+
+              <Button
+                href="/resume.pdf"
+                variant="ghost"
+                download="Mohit-Singh-Resume.pdf"
+              >Download CV</Button>
+            </div>
+
+            <p class="contact-note">
+              Expensive work doesn't ask for the job.
+              It earns the conversation.
+            </p>
+          </aside>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .contact-hero__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    line-height: var(--leading-tight);
+    color: var(--bone);
+    margin-top: var(--space-4);
+    max-width: 16ch;
+  }
+
+  .contact-hero__sub {
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    color: color-mix(in srgb, var(--bone) 60%, transparent);
+    margin-top: var(--space-6);
+    max-width: 46ch;
+    line-height: var(--leading-loose);
+  }
+
+  /* Layout: form left, details right */
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: var(--space-24);
+    align-items: start;
+  }
+
+  /* Form */
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .contact-form__honeypot {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    overflow: hidden;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .form-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    color: var(--bone);
+    background: var(--smoke);
+    border: 1px solid color-mix(in srgb, var(--gold) 20%, transparent);
+    border-radius: var(--radius-sm);
+    padding: var(--space-4) var(--space-5);
+    outline: none;
+    transition: border-color var(--dur-fast) var(--ease-expo);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .form-input::placeholder,
+  .form-textarea::placeholder {
+    color: color-mix(in srgb, var(--bone) 25%, transparent);
+  }
+
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
+    border-color: var(--gold);
+    box-shadow: var(--focus-ring);
+  }
+
+  .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23C0A062' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--space-4) center;
+    padding-right: var(--space-10);
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 140px;
+    line-height: var(--leading-loose);
+  }
+
+  .form-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: var(--ink);
+    background: var(--gold);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--space-4) var(--space-8);
+    cursor: pointer;
+    align-self: flex-start;
+    transition:
+      background-color var(--dur-fast) var(--ease-expo),
+      color var(--dur-fast) var(--ease-expo);
+  }
+
+  .form-submit:hover {
+    background: var(--gold-bright);
+  }
+
+  .form-submit:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+
+  .form-submit__arrow {
+    transition: transform var(--dur-fast) var(--ease-expo);
+  }
+
+  .form-submit:hover .form-submit__arrow {
+    transform: translateX(3px);
+  }
+
+  /* Contact details */
+  .contact-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding-top: var(--space-2);
+  }
+
+  .contact-detail-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .contact-detail-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+
+  .contact-detail-value {
+    font-family: var(--font-ui);
+    font-size: var(--text-base);
+    color: var(--bone);
+  }
+
+  .contact-detail-value--email {
+    text-decoration: none;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--gold);
+    transition: color var(--dur-fast) var(--ease-expo);
+    word-break: break-all;
+  }
+
+  .contact-detail-value--email:hover {
+    color: var(--gold-bright);
+    text-decoration: underline;
+  }
+
+  .contact-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    align-items: flex-start;
+  }
+
+  .contact-note {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-style: italic;
+    color: color-mix(in srgb, var(--bone) 40%, transparent);
+    line-height: var(--leading-snug);
+    border-left: 2px solid color-mix(in srgb, var(--gold) 30%, transparent);
+    padding-left: var(--space-5);
+    margin-top: var(--space-4);
+  }
+
+  /* Mobile */
+  @media (max-width: 900px) {
+    .contact-layout {
+      grid-template-columns: 1fr;
+      gap: var(--space-16);
+    }
+    .contact-hero__heading {
+      font-size: clamp(2.5rem, 12vw, 5rem);
+    }
+    .contact-details {
+      order: -1;
+    }
+  }
+</style>

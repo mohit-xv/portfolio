@@ -1,0 +1,134 @@
+---
+/**
+ * Footer — credits line, nav links, and live signals.
+ * "Written, designed & deployed by Mohit Singh."
+ * Last deployed date is injected at build time.
+ */
+const buildDate = new Date().toLocaleDateString('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+});
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="site-footer__inner">
+      <!-- Credits -->
+      <p class="site-footer__credits">
+        Written, designed &amp; deployed by Mohit Singh.
+      </p>
+
+      <!-- Nav links -->
+      <nav class="site-footer__nav" aria-label="Footer navigation">
+        <a href="/work/this-website" class="footer-link">Work</a>
+        <a href="/about" class="footer-link">About</a>
+        <a href="/contact" class="footer-link">Contact</a>
+        <a
+          href="https://github.com/mohit-xv"
+          class="footer-link footer-link--external"
+          target="_blank"
+          rel="noopener noreferrer"
+        >GitHub ↗</a>
+      </nav>
+
+      <!-- Live signals -->
+      <div class="site-footer__signals">
+        <span class="footer-signal">
+          <span class="footer-signal__dot" aria-hidden="true"></span>
+          Deployed {buildDate}
+        </span>
+        <span class="footer-signal footer-signal--cost">
+          ₹0.00 / mo
+        </span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+    padding: var(--space-12) 0;
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+  }
+
+  .site-footer__credits {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in srgb, var(--bone) 35%, transparent);
+  }
+
+  /* Footer nav */
+  .site-footer__nav {
+    display: flex;
+    gap: var(--space-8);
+  }
+
+  .footer-link {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--bone) 40%, transparent);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-expo);
+  }
+
+  .footer-link:hover {
+    color: var(--gold);
+  }
+
+  .footer-link:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+
+  /* Live signals */
+  .site-footer__signals {
+    display: flex;
+    gap: var(--space-8);
+    align-items: center;
+  }
+
+  .footer-signal {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in srgb, var(--bone) 30%, transparent);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .footer-signal__dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .footer-signal--cost {
+    color: var(--gold);
+  }
+
+  @media (max-width: 640px) {
+    .site-footer__inner {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-6);
+    }
+    .site-footer__nav {
+      gap: var(--space-6);
+    }
+  }
+</style>

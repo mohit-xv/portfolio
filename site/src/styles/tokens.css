@@ -1,0 +1,81 @@
+/* =============================================================================
+   DESIGN TOKENS — single source of truth for the entire site
+   ============================================================================= */
+
+:root {
+  /* ── Palette ── */
+  --ink:        #0D0B09; /* page background — warm near-black, never pure */
+  --smoke:      #17140F; /* raised panels, cards */
+  --bone:       #EDE4D3; /* all body text */
+  --gold:       #C0A062; /* accents — capped ~5% of any viewport */
+  --gold-bright:#E3C27D; /* hover states, the italic hero word only */
+  --oxblood:    #6E2B33; /* optional — under 1% total use */
+
+  /* ── Type families ── */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-ui:      'General Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'Space Mono', 'Courier New', Courier, monospace;
+
+  /* ── Fluid type scale (min → max) ── */
+  --text-2xs:  clamp(0.625rem, 1.2vw, 0.75rem);
+  --text-xs:   clamp(0.75rem,  1.5vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 2vw,   1rem);
+  --text-base: clamp(1rem,     2.5vw, 1.125rem);
+  --text-lg:   clamp(1.125rem, 3vw,   1.375rem);
+  --text-xl:   clamp(1.375rem, 4vw,   1.75rem);
+  --text-2xl:  clamp(1.75rem,  5vw,   2.5rem);
+  --text-3xl:  clamp(2.25rem,  7vw,   3.75rem);
+  --text-4xl:  clamp(3.25rem,  9vw,   5.5rem);
+  --text-5xl:  clamp(4.5rem,   12vw,  8rem);
+
+  /* ── Line heights ── */
+  --leading-tight:  1.1;
+  --leading-snug:   1.25;
+  --leading-normal: 1.6;
+  --leading-loose:  1.8;
+
+  /* ── Letter spacing ── */
+  --tracking-tight:  -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.08em;
+  --tracking-wider:   0.14em;
+  --tracking-widest:  0.22em;
+
+  /* ── Spacing scale ── */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+  --space-40: 10rem;
+  --space-48: 12rem;
+  --space-64: 16rem;
+
+  /* ── Layout ── */
+  --max-w:        1200px;
+  --max-w-prose:  680px;
+  --gutter:       clamp(1.5rem, 5vw, 4rem);
+
+  /* ── Motion — expo-out for all entrances ── */
+  --ease-expo:   cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:    0.3s;
+  --dur-mid:     0.8s;
+  --dur-slow:    1.2s;
+
+  /* ── Border radii ── */
+  --radius-sm:  2px;
+  --radius-md:  4px;
+  --radius-lg:  8px;
+
+  /* ── Focus gold ring ── */
+  --focus-ring: 0 0 0 2px var(--ink), 0 0 0 4px var(--gold);
+}

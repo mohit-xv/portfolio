@@ -1,0 +1,225 @@
+---
+/**
+ * Selected Work — the scroll-drawn spine section.
+ * Static in Phase 3: both exhibits visible, no draw animation yet.
+ * Phase 4 will add: SVG path pathLength binding, React island (SpineScroll.tsx),
+ * Lenis scroll progress → exhibit opacity + x drift.
+ *
+ * The SVG spine placeholder is styled but inert here.
+ */
+import Eyebrow from '../ui/Eyebrow.astro';
+---
+
+<section class="selected-work section" aria-label="Selected Work">
+  <div class="container">
+    <!-- Chapter head -->
+    <Eyebrow>Part I</Eyebrow>
+    <h2 class="selected-work__heading">Selected Work</h2>
+  </div>
+
+  <!-- Spine + exhibits grid -->
+  <div class="selected-work__stage">
+    <!-- Gold spine (static placeholder — Phase 4 draws this on scroll) -->
+    <div class="spine" aria-hidden="true">
+      <svg
+        class="spine__svg"
+        viewBox="0 0 2 800"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M1,0 C1,200 1,600 1,800"
+          stroke="var(--gold)"
+          stroke-width="1"
+          fill="none"
+          stroke-linecap="round"
+          class="spine__path"
+        />
+      </svg>
+    </div>
+
+    <!-- Exhibits -->
+    <div class="exhibits container">
+      <!-- Exhibit I -->
+      <a href="/work/this-website" class="exhibit exhibit--left">
+        <span class="exhibit__number">No. I</span>
+        <h3 class="exhibit__title">This Website</h3>
+        <p class="exhibit__discipline">FinOps · Infrastructure · DevOps</p>
+        <dl class="exhibit__stats">
+          <dt>Running cost</dt>
+          <dd class="exhibit__cost">₹0 / mo</dd>
+          <dt>Stack</dt>
+          <dd>Astro · AWS S3 · CloudFront · Terraform</dd>
+        </dl>
+        <span class="exhibit__cta">Read the case study →</span>
+      </a>
+
+      <!-- Exhibit II -->
+      <a href="/work/stock-screener" class="exhibit exhibit--right">
+        <span class="exhibit__number">No. II</span>
+        <h3 class="exhibit__title">Stock Screener</h3>
+        <p class="exhibit__discipline">On-demand Infrastructure · Python · FinOps</p>
+        <dl class="exhibit__stats">
+          <dt>Scan speed</dt>
+          <dd class="exhibit__cost">400 ms</dd>
+          <dt>Cost per run</dt>
+          <dd>₹0.002</dd>
+        </dl>
+        <span class="exhibit__cta">Read the case study →</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .selected-work {
+    overflow: hidden;
+  }
+
+  .selected-work__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-4xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-16);
+  }
+
+  /* Stage: relative container for the centred spine */
+  .selected-work__stage {
+    position: relative;
+  }
+
+  /* Spine — vertical gold line centred in the section */
+  .spine {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 2px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .spine__svg {
+    width: 2px;
+    height: 100%;
+  }
+
+  .spine__path {
+    opacity: 0.45;
+  }
+
+  /* Exhibits grid */
+  .exhibits {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+    position: relative;
+    z-index: 1;
+  }
+
+  .exhibit {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-12) var(--space-8);
+    background: var(--smoke);
+    border: 1px solid color-mix(in srgb, var(--gold) 15%, transparent);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--bone);
+    transition:
+      border-color var(--dur-fast) var(--ease-expo),
+      transform var(--dur-fast) var(--ease-expo);
+  }
+
+  .exhibit:hover {
+    border-color: color-mix(in srgb, var(--gold) 45%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .exhibit:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+
+  .exhibit__number {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-widest);
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .exhibit__title {
+    font-family: var(--font-display);
+    font-size: var(--text-2xl);
+    font-weight: 400;
+    line-height: var(--leading-snug);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .exhibit__discipline {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in srgb, var(--bone) 50%, transparent);
+  }
+
+  .exhibit__stats {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-2) var(--space-6);
+    margin-top: auto;
+    font-size: var(--text-sm);
+  }
+
+  .exhibit__stats dt {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wide);
+    color: color-mix(in srgb, var(--bone) 40%, transparent);
+    text-transform: uppercase;
+    align-self: center;
+  }
+
+  .exhibit__stats dd {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--bone);
+  }
+
+  .exhibit__cost {
+    font-family: var(--font-mono);
+    font-size: var(--text-lg);
+    color: var(--gold-bright);
+  }
+
+  .exhibit__cta {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-top: var(--space-4);
+    transition: color var(--dur-fast) var(--ease-expo);
+  }
+
+  .exhibit:hover .exhibit__cta {
+    color: var(--gold-bright);
+  }
+
+  /* Mobile: stack exhibits */
+  @media (max-width: 768px) {
+    .exhibits {
+      grid-template-columns: 1fr;
+    }
+    .spine {
+      display: none;
+    }
+  }
+</style>

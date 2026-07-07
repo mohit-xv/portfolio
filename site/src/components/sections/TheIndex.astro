@@ -1,0 +1,48 @@
+---
+/**
+ * The Index — typographic ledger of all projects. No thumbnails.
+ * New projects are added to src/data/index-rows.ts — one array push.
+ */
+import Eyebrow from '../ui/Eyebrow.astro';
+import IndexRow from '../ui/IndexRow.astro';
+import { indexRows } from '../../data/index-rows';
+---
+
+<section class="the-index section" aria-label="Project Index">
+  <div class="container">
+    <Eyebrow>Index</Eyebrow>
+    <h2 class="the-index__heading">All Work</h2>
+
+    <div class="the-index__ledger" role="list">
+      {indexRows.map((row) => (
+        <div role="listitem">
+          <IndexRow
+            title={row.title}
+            description={row.description}
+            stack={row.stack}
+            year={row.year}
+            status={row.status}
+            href={row.href}
+            external={row.external}
+          />
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .the-index__heading {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-10);
+  }
+
+  .the-index__ledger {
+    /* Full-bleed within container — no extra padding */
+  }
+</style>

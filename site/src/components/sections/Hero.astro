@@ -1,0 +1,129 @@
+---
+/**
+ * Hero — the above-the-fold first impression.
+ * Wordmark: "Mohit Singh" in Fraunces.
+ * Headline: "Pay for compute, not waste." — "waste" in italic gold.
+ * Subline: eyebrow credentials.
+ * Motion (Phase 4): line-by-line masked reveal, whileInView once.
+ */
+import Eyebrow from '../ui/Eyebrow.astro';
+import Button from '../ui/Button.astro';
+---
+
+<section class="hero" aria-label="Introduction">
+  <div class="container">
+    <!-- Wordmark -->
+    <p class="hero__wordmark" aria-label="Mohit Singh">Mohit Singh</p>
+
+    <!-- Headline -->
+    <h1 class="hero__headline">
+      Pay for compute,<br />not <em class="hero__waste">waste</em>.
+    </h1>
+
+    <!-- Credential subline -->
+    <Eyebrow class="hero__subline">
+      Cloud Cost Optimisation &middot; DevOps &middot; 5&times; AWS Certified
+    </Eyebrow>
+
+    <!-- Quiet scroll cue + primary CTA -->
+    <div class="hero__cta">
+      <Button href="/work/this-website">See the work</Button>
+      <Button href="/contact" variant="text">Get in touch</Button>
+    </div>
+
+    <!-- Scroll prompt — disappears on scroll -->
+    <p class="hero__scroll-cue" aria-hidden="true">scroll</p>
+  </div>
+</section>
+
+<style>
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    padding-top: var(--space-32);
+    padding-bottom: var(--space-32);
+    position: relative;
+  }
+
+  .hero .container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  /* Wordmark */
+  .hero__wordmark {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--bone) 50%, transparent);
+    margin-bottom: var(--space-4);
+  }
+
+  /* Headline */
+  .hero__headline {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: 300;
+    line-height: var(--leading-tight);
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    max-width: 14ch;
+  }
+
+  /* The italic gold word */
+  .hero__waste {
+    font-style: italic;
+    color: var(--gold-bright);
+    font-variation-settings: 'WONK' 1;
+  }
+
+  /* Subline */
+  .hero__subline {
+    margin-top: var(--space-2);
+  }
+
+  /* CTA row */
+  .hero__cta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    margin-top: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  /* Scroll cue — positioned bottom-center */
+  .hero__scroll-cue {
+    position: absolute;
+    bottom: var(--space-12);
+    left: var(--gutter);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--bone) 25%, transparent);
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+  }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .hero {
+      padding-top: var(--space-24);
+      align-items: flex-start;
+    }
+    .hero__headline {
+      font-size: clamp(3rem, 14vw, 5rem);
+    }
+    .hero__scroll-cue {
+      display: none;
+    }
+    .hero__cta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-5);
+    }
+  }
+</style>

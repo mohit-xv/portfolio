@@ -1,0 +1,84 @@
+---
+/**
+ * Button — General Sans, understated. Two variants: ghost (default) and text.
+ * Always renders as <a> (navigation-first). For form submit use native <button>.
+ */
+interface Props {
+  href: string;
+  variant?: 'ghost' | 'text';
+  external?: boolean;
+  download?: string;
+  class?: string;
+}
+
+const {
+  href,
+  variant = 'ghost',
+  external = false,
+  download,
+  class: className,
+} = Astro.props;
+
+const externalAttrs = external
+  ? { target: '_blank', rel: 'noopener noreferrer' }
+  : {};
+---
+
+<a
+  href={href}
+  class:list={['btn', `btn--${variant}`, className]}
+  {...externalAttrs}
+  {...(download ? { download } : {})}
+>
+  <slot />
+  {external && <span class="btn__arrow" aria-hidden="true">↗</span>}
+</a>
+
+<style>
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    transition:
+      color var(--dur-fast) var(--ease-expo),
+      border-color var(--dur-fast) var(--ease-expo);
+  }
+
+  /* ghost — subtle border */
+  .btn--ghost {
+    color: var(--bone);
+    border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-sm);
+  }
+  .btn--ghost:hover {
+    color: var(--gold-bright);
+    border-color: var(--gold);
+  }
+  .btn--ghost:focus-visible {
+    box-shadow: var(--focus-ring);
+  }
+
+  /* text — no border */
+  .btn--text {
+    color: var(--gold);
+    padding: 0;
+    gap: var(--space-1);
+  }
+  .btn--text:hover {
+    color: var(--gold-bright);
+  }
+
+  .btn__arrow {
+    font-family: var(--font-ui);
+    font-size: 0.9em;
+    transition: transform var(--dur-fast) var(--ease-expo);
+  }
+  .btn:hover .btn__arrow {
+    transform: translate(2px, -2px);
+  }
+</style>

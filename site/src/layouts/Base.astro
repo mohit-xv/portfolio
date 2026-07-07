@@ -1,0 +1,99 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  noIndex?: boolean;
+}
+
+const {
+  title,
+  description = 'Cloud cost optimisation and DevOps engineering by Mohit Singh — 5× AWS Certified.',
+  ogImage = '/og-default.png',
+  noIndex = false,
+} = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? 'https://mohitsingh.dev');
+const pageTitle = title === 'Mohit Singh'
+  ? 'Mohit Singh — Cloud Cost Optimisation & DevOps'
+  : `${title} — Mohit Singh`;
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0D0B09" />
+
+  <!-- Primary meta -->
+  <title>{pageTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonicalURL} />
+  {noIndex && <meta name="robots" content="noindex,nofollow" />}
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content={canonicalURL} />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={new URL(ogImage, Astro.site ?? 'https://mohitsingh.dev')} />
+  <meta property="og:site_name" content="Mohit Singh" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={pageTitle} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={new URL(ogImage, Astro.site ?? 'https://mohitsingh.dev')} />
+
+  <!-- Structured data — Person -->
+  <script is:inline type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Mohit Singh",
+    "url": "https://mohitsingh.dev",
+    "sameAs": [
+      "https://github.com/mohit-xv",
+      "https://www.credly.com/users/mohit-singh"
+    ],
+    "jobTitle": "Cloud Cost Optimisation Engineer",
+    "knowsAbout": ["AWS", "Cloud Cost Optimisation", "DevOps", "FinOps", "Terraform", "Python"],
+  })} />
+
+  <!-- Fonts — Google Fonts (Fraunces + Space Mono) and Fontshare (General Sans) -->
+  <!-- Preconnect to font origins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://api.fontshare.com" />
+
+  <!-- Fraunces: variable, includes italic, WONK axis for the hero word -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap"
+  />
+
+  <!-- Space Mono: regular + bold -->
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+  />
+
+  <!-- General Sans via Fontshare (variable) -->
+  <link
+    rel="stylesheet"
+    href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap"
+  />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+</head>
+<body>
+  <!-- Grain overlay — decorative, pointer-events none -->
+  <div class="grain-layer" aria-hidden="true"></div>
+
+  <!-- Site content -->
+  <slot />
+</body>
+</html>

@@ -1,0 +1,275 @@
+---
+/**
+ * /styleguide — living design system showcase.
+ * Exists only in development; excluded from sitemap and robots in production.
+ * Shows every token, component, and type style.
+ */
+import Base from '../layouts/Base.astro';
+import Nav from '../components/sections/Nav.astro';
+import Eyebrow from '../components/ui/Eyebrow.astro';
+import Button from '../components/ui/Button.astro';
+import IndexRow from '../components/ui/IndexRow.astro';
+import Laurel from '../components/ui/Laurel.astro';
+import Footer from '../components/sections/Footer.astro';
+---
+
+<Base title="Styleguide" noIndex>
+  <Nav />
+  <main class="sg">
+    <div class="container">
+
+      <header class="sg-header">
+        <Eyebrow>Design System</Eyebrow>
+        <h1 class="sg-title">Styleguide</h1>
+        <p class="sg-note">
+          Living reference — excluded from sitemap and robots.txt.
+          Use this to review tokens, components, and type at any viewport.
+        </p>
+      </header>
+
+      <!-- ── Palette ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Palette</h2>
+        <div class="sg-swatches">
+          {[
+            { name: '--ink',        hex: '#0D0B09', label: 'Ink' },
+            { name: '--smoke',      hex: '#17140F', label: 'Smoke' },
+            { name: '--bone',       hex: '#EDE4D3', label: 'Bone' },
+            { name: '--gold',       hex: '#C0A062', label: 'Gold' },
+            { name: '--gold-bright',hex: '#E3C27D', label: 'Gold Bright' },
+            { name: '--oxblood',    hex: '#6E2B33', label: 'Oxblood' },
+          ].map((s) => (
+            <div class="swatch">
+              <div class="swatch__chip" style={`background:${s.hex};border:1px solid rgba(255,255,255,0.08)`}></div>
+              <code class="swatch__token">{s.name}</code>
+              <span class="swatch__label">{s.label}</span>
+              <span class="swatch__hex">{s.hex}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- ── Type scale ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Type Scale — Display (Fraunces)</h2>
+        <div class="sg-type-samples">
+          <p style="font-family:var(--font-display);font-size:var(--text-5xl);font-weight:300;line-height:1.1;letter-spacing:-0.02em">Hero — Fraunces 300</p>
+          <p style="font-family:var(--font-display);font-size:var(--text-4xl);font-weight:300;line-height:1.1;letter-spacing:-0.02em">Display — Fraunces 300</p>
+          <p style="font-family:var(--font-display);font-size:var(--text-3xl);font-weight:400;line-height:1.25">Heading — Fraunces 400</p>
+          <p style="font-family:var(--font-display);font-size:var(--text-2xl);font-weight:400;line-height:1.25">Subheading — Fraunces 400</p>
+          <p style="font-family:var(--font-display);font-size:var(--text-xl);font-style:italic;color:var(--gold-bright)">Italic Gold — <em>waste</em></p>
+        </div>
+
+        <h2 class="sg-section-title" style="margin-top:var(--space-12)">Body (General Sans)</h2>
+        <div class="sg-type-samples">
+          <p style="font-family:var(--font-ui);font-size:var(--text-lg);line-height:1.6">Body Large — General Sans 400</p>
+          <p style="font-family:var(--font-ui);font-size:var(--text-base);line-height:1.6">Body — General Sans 400</p>
+          <p style="font-family:var(--font-ui);font-size:var(--text-sm);line-height:1.6">Body Small — General Sans 400</p>
+        </div>
+
+        <h2 class="sg-section-title" style="margin-top:var(--space-12)">Mono (Space Mono)</h2>
+        <div class="sg-type-samples">
+          <p class="type-eyebrow">Eyebrow · All-caps · Space Mono · Gold</p>
+          <p style="font-family:var(--font-mono);font-size:var(--text-sm);letter-spacing:0.14em">Metric — 400 ms · ₹0.002 · MMXXV</p>
+          <code style="font-family:var(--font-mono);font-size:var(--text-sm);color:var(--gold-bright);background:var(--smoke);padding:4px 8px;border-radius:2px">terraform apply</code>
+        </div>
+      </section>
+
+      <!-- ── Buttons ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Buttons</h2>
+        <div class="sg-row">
+          <Button href="#">Ghost button</Button>
+          <Button href="#" external>External ↗</Button>
+          <Button href="#" variant="text">Text button</Button>
+          <Button href="#" variant="text" external>Text external</Button>
+        </div>
+      </section>
+
+      <!-- ── Eyebrow ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Eyebrow</h2>
+        <Eyebrow>Part I · Selected Work</Eyebrow>
+        <br />
+        <Eyebrow>Cloud Cost Optimisation · DevOps · 5× AWS Certified</Eyebrow>
+      </section>
+
+      <!-- ── Index row ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Index Row</h2>
+        <IndexRow
+          title="SHROOM"
+          description="hallucination detector"
+          stack="PyTorch · HuggingFace"
+          year="MMXXV"
+          status="↗"
+          href="#"
+          external
+        />
+        <IndexRow
+          title="GitHub"
+          description="all public work"
+          stack="@mohit-xv"
+          year="LIVE"
+          status="LIVE"
+          href="https://github.com/mohit-xv"
+          external
+        />
+      </section>
+
+      <!-- ── Laurel ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Laurel</h2>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap">
+          <Laurel
+            name="AWS Certified Solutions Architect – Associate"
+            shortName="Solutions Architect"
+            level="Associate"
+            year="MMXXV"
+            href="https://www.credly.com"
+            badgeImage="/badges/solutions-architect.png"
+          />
+          <Laurel
+            name="AWS Certified Cloud Practitioner"
+            shortName="Cloud Practitioner"
+            level="Foundational"
+            year="MMXXIV"
+            href="https://www.credly.com"
+            badgeImage="/badges/cloud-practitioner.png"
+          />
+        </div>
+      </section>
+
+      <!-- ── Grain visibility ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Grain (3% opacity)</h2>
+        <p class="sg-note">
+          The grain layer is always-on via <code>.grain-layer</code> in Base.astro.
+          It's visible at ~3% opacity over the full viewport.
+        </p>
+        <div class="sg-grain-test">
+          <span>Background is --ink. Grain is <code>.grain-layer</code> in grain.css</span>
+        </div>
+      </section>
+
+      <!-- ── Dividers / focus ring ── -->
+      <section class="sg-section">
+        <h2 class="sg-section-title">Divider</h2>
+        <hr class="divider" />
+
+        <h2 class="sg-section-title" style="margin-top:var(--space-8)">Focus ring (Tab to this button)</h2>
+        <Button href="#">Focus me</Button>
+      </section>
+
+    </div>
+  </main>
+  <Footer />
+</Base>
+
+<style>
+  .sg {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-32);
+  }
+
+  .sg-header {
+    padding: var(--space-16) 0 var(--space-24);
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 15%, transparent);
+    margin-bottom: var(--space-16);
+  }
+
+  .sg-title {
+    font-family: var(--font-display);
+    font-size: var(--text-5xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    margin-top: var(--space-3);
+  }
+
+  .sg-note {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: color-mix(in srgb, var(--bone) 45%, transparent);
+    margin-top: var(--space-4);
+    max-width: 56ch;
+    line-height: var(--leading-normal);
+  }
+
+  .sg-section {
+    margin-bottom: var(--space-24);
+  }
+
+  .sg-section-title {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-widest);
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: var(--space-8);
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  }
+
+  .sg-swatches {
+    display: flex;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .swatch__chip {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--radius-sm);
+  }
+
+  .swatch__token {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: color-mix(in srgb, var(--bone) 50%, transparent);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .swatch__label {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: var(--bone);
+  }
+
+  .swatch__hex {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: color-mix(in srgb, var(--bone) 35%, transparent);
+  }
+
+  .sg-type-samples {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .sg-row {
+    display: flex;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .sg-grain-test {
+    margin-top: var(--space-4);
+    padding: var(--space-8);
+    background: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--gold) 15%, transparent);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: color-mix(in srgb, var(--bone) 40%, transparent);
+    letter-spacing: var(--tracking-wide);
+  }
+</style>

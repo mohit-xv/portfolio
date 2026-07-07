@@ -1,0 +1,130 @@
+---
+/**
+ * IndexRow — one row in the typographic ledger.
+ * Designed to scan like a spreadsheet: title left, metadata right.
+ */
+interface Props {
+  title: string;
+  description: string;
+  stack: string;
+  year: string;
+  status: string;
+  href: string;
+  external?: boolean;
+}
+
+const { title, description, stack, year, status, href, external = false } = Astro.props;
+const externalAttrs = external ? { target: '_blank', rel: 'noopener noreferrer' } : {};
+const isLive = status === 'LIVE';
+---
+
+<a href={href} class="index-row" {...externalAttrs}>
+  <span class="index-row__title">{title}</span>
+  <span class="index-row__desc">{description}</span>
+  <span class="index-row__stack">{stack}</span>
+  <span class="index-row__year">{year}</span>
+  <span class:list={['index-row__status', { 'index-row__status--live': isLive }]}>
+    {status}
+  </span>
+</a>
+
+<style>
+  .index-row {
+    display: grid;
+    grid-template-columns: 8rem 1fr auto auto auto;
+    align-items: center;
+    gap: var(--space-4) var(--space-8);
+    padding: var(--space-5) 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+    text-decoration: none;
+    color: var(--bone);
+    transition: background-color var(--dur-fast) var(--ease-expo);
+  }
+  .index-row:first-child {
+    border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
+  }
+  .index-row:hover {
+    background-color: color-mix(in srgb, var(--gold) 4%, transparent);
+  }
+  .index-row:hover .index-row__title {
+    color: var(--gold-bright);
+  }
+  .index-row:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+  }
+
+  .index-row__title {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 400;
+    transition: color var(--dur-fast) var(--ease-expo);
+  }
+
+  .index-row__desc {
+    font-family: var(--font-ui);
+    font-size: var(--text-sm);
+    color: color-mix(in srgb, var(--bone) 60%, transparent);
+  }
+
+  .index-row__stack {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: color-mix(in srgb, var(--bone) 45%, transparent);
+    letter-spacing: var(--tracking-wide);
+  }
+
+  .index-row__year {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: color-mix(in srgb, var(--bone) 40%, transparent);
+    letter-spacing: var(--tracking-wide);
+    text-align: right;
+  }
+
+  .index-row__status {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--gold);
+    letter-spacing: var(--tracking-wide);
+    min-width: 2rem;
+    text-align: right;
+  }
+
+  .index-row__status--live {
+    color: var(--gold-bright);
+  }
+
+  /* Mobile: collapse to two-line layout */
+  @media (max-width: 640px) {
+    .index-row {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: var(--space-1) var(--space-4);
+    }
+    .index-row__title {
+      grid-column: 1;
+      grid-row: 1;
+      font-size: var(--text-base);
+    }
+    .index-row__status {
+      grid-column: 2;
+      grid-row: 1;
+    }
+    .index-row__desc {
+      grid-column: 1;
+      grid-row: 2;
+      font-size: var(--text-xs);
+    }
+    .index-row__stack {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      font-size: var(--text-2xs);
+    }
+    .index-row__year {
+      grid-column: 2;
+      grid-row: 2;
+      font-size: var(--text-2xs);
+    }
+  }
+</style>

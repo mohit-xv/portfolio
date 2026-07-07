@@ -1,0 +1,118 @@
+---
+/**
+ * Nav — minimal top navigation.
+ * Wordmark left, links right. Sticky with backdrop blur.
+ */
+const navLinks = [
+  { href: '/work/this-website', label: 'Work' },
+  { href: '/about', label: 'About' },
+  { href: '/contact', label: 'Contact' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="site-nav" role="banner">
+  <div class="container site-nav__inner">
+    <!-- Wordmark -->
+    <a href="/" class="site-nav__wordmark" aria-label="Mohit Singh — Home">
+      Mohit Singh
+    </a>
+
+    <!-- Main nav links -->
+    <nav aria-label="Primary navigation">
+      <ul class="site-nav__links" role="list">
+        {navLinks.map((link) => {
+          const isCurrent = currentPath.startsWith(link.href.split('/').slice(0, 2).join('/'));
+          return (
+            <li>
+              <a
+                href={link.href}
+                class="site-nav__link"
+                aria-current={isCurrent ? 'page' : undefined}
+              >
+                {link.label}
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    /* Subtle backdrop — lets grain stay visible through */
+    background: color-mix(in srgb, var(--ink) 85%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid color-mix(in srgb, var(--gold) 8%, transparent);
+  }
+
+  .site-nav__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 4rem;
+  }
+
+  /* Wordmark */
+  .site-nav__wordmark {
+    font-family: var(--font-display);
+    font-size: var(--text-base);
+    font-weight: 400;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-expo);
+  }
+
+  .site-nav__wordmark:hover {
+    color: var(--gold-bright);
+  }
+
+  /* Links list */
+  .site-nav__links {
+    display: flex;
+    gap: var(--space-8);
+    list-style: none;
+  }
+
+  .site-nav__link {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    letter-spacing: var(--tracking-wider);
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--bone) 55%, transparent);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-expo);
+  }
+
+  .site-nav__link:hover,
+  .site-nav__link[aria-current="page"] {
+    color: var(--bone);
+  }
+
+  .site-nav__link[aria-current="page"] {
+    color: var(--gold);
+  }
+
+  .site-nav__link:focus-visible {
+    box-shadow: var(--focus-ring);
+    outline: none;
+    border-radius: var(--radius-sm);
+  }
+
+  @media (max-width: 480px) {
+    .site-nav__links {
+      gap: var(--space-5);
+    }
+    .site-nav__link {
+      font-size: var(--text-2xs);
+    }
+  }
+</style>

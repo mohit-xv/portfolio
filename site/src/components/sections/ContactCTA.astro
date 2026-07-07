@@ -1,0 +1,50 @@
+---
+/**
+ * ContactCTA — the quiet "get in touch" line before the footer.
+ * A single understated sentence, not a sales pitch.
+ */
+import Button from '../ui/Button.astro';
+---
+
+<section class="contact-cta section" aria-label="Get in touch">
+  <div class="container">
+    <div class="contact-cta__inner">
+      <p class="contact-cta__line">
+        If something looks familiar, let's talk.
+      </p>
+      <Button href="/contact">Get in touch</Button>
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact-cta__inner {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-8);
+    padding: var(--space-16) 0;
+    border-top: 1px solid color-mix(in srgb, var(--gold) 18%, transparent);
+    flex-wrap: wrap;
+  }
+
+  .contact-cta__line {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 300;
+    letter-spacing: var(--tracking-tight);
+    color: var(--bone);
+    line-height: var(--leading-snug);
+    max-width: 22ch;
+  }
+
+  @media (max-width: 640px) {
+    .contact-cta__inner {
+      flex-direction: column;
+      gap: var(--space-8);
+    }
+    .contact-cta__line {
+      font-size: var(--text-2xl);
+    }
+  }
+</style>
