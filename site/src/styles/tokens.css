@@ -76,6 +76,9 @@
   --radius-md:  4px;
   --radius-lg:  8px;
 
+  /* ── Warm display heading colour — bone with a 12% gold lean ── */
+  --heading-warm: color-mix(in srgb, var(--bone) 88%, var(--gold));
+
   /* ── Focus gold ring ── */
   --focus-ring: 0 0 0 2px var(--ink), 0 0 0 4px var(--gold);
 }

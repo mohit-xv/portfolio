@@ -44,6 +44,14 @@ import Button from '../ui/Button.astro';
     padding-top: var(--space-32);
     padding-bottom: var(--space-32);
     position: relative;
+    /* Warm gold radial glow — originates where the headline sits, bleeds softly left */
+    background:
+      radial-gradient(
+        ellipse 55% 65% at 8% 48%,
+        color-mix(in srgb, var(--gold) 7%, transparent),
+        transparent 100%
+      ),
+      var(--ink);
   }
 
   .hero .container {
@@ -62,14 +70,14 @@ import Button from '../ui/Button.astro';
     margin-bottom: var(--space-4);
   }
 
-  /* Headline */
+  /* Headline — slightly warmer than body bone, pulls toward gold without landing there */
   .hero__headline {
     font-family: var(--font-display);
     font-size: var(--text-5xl);
     font-weight: 300;
     line-height: var(--leading-tight);
     letter-spacing: var(--tracking-tight);
-    color: var(--bone);
+    color: var(--heading-warm);
     max-width: 14ch;
   }
 
