@@ -5,12 +5,19 @@
  * Headline: "Pay for compute, not waste." — "waste" in italic gold.
  * Subline: eyebrow credentials.
  * Motion (Phase 4): line-by-line masked reveal, whileInView once.
+ *
+ * CosmicBeams island: Canvas-based animated gold light shafts behind the hero.
+ * client:only="react" — browser-only, no SSR, no hydration mismatch.
  */
 import Eyebrow from '../ui/Eyebrow.astro';
 import Button from '../ui/Button.astro';
+import CosmicBeams from '../islands/CosmicBeams.astro';
 ---
 
 <section class="hero" aria-label="Introduction">
+  <!-- Animated background — gold light beams on a warm-black canvas -->
+  <CosmicBeams />
+
   <div class="container">
     <!-- Wordmark -->
     <p class="hero__wordmark" aria-label="Mohit Singh">Mohit Singh</p>
@@ -44,20 +51,18 @@ import Button from '../ui/Button.astro';
     padding-top: var(--space-32);
     padding-bottom: var(--space-32);
     position: relative;
-    /* Warm gold radial glow — originates where the headline sits, bleeds softly left */
-    background:
-      radial-gradient(
-        ellipse 55% 65% at 8% 48%,
-        color-mix(in srgb, var(--gold) 7%, transparent),
-        transparent 100%
-      ),
-      var(--ink);
+    overflow: hidden;
+    /* Plain fallback for no-JS / canvas unsupported */
+    background: var(--ink);
   }
 
+  /* Keep all text content above the canvas layer */
   .hero .container {
     display: flex;
     flex-direction: column;
     gap: var(--space-8);
+    position: relative;
+    z-index: 1;
   }
 
   /* Wordmark */
@@ -102,9 +107,10 @@ import Button from '../ui/Button.astro';
     flex-wrap: wrap;
   }
 
-  /* Scroll cue — positioned bottom-center */
+  /* Scroll cue — above the canvas */
   .hero__scroll-cue {
     position: absolute;
+    z-index: 1;
     bottom: var(--space-12);
     left: var(--gutter);
     font-family: var(--font-mono);
