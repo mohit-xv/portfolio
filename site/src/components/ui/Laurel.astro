@@ -89,9 +89,10 @@ const { name, shortName, level, year, href, badgeImage } = Astro.props;
   .laurel__level {
     font-family: var(--font-mono);
     font-size: var(--text-2xs);
-    letter-spacing: var(--tracking-widest);
+    letter-spacing: var(--tracking-wide); /* wider caused FOUNDATIONAL to orphan its ≋ */
     text-transform: uppercase;
     color: color-mix(in srgb, var(--gold) 70%, transparent);
+    white-space: nowrap; /* keep level + decorators on one line */
   }
 
   .laurel__level::before {
