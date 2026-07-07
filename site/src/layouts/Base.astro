@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import CosmicBeams from '../components/islands/CosmicBeams.astro';
 
 interface Props {
   title: string;
@@ -90,6 +91,9 @@ const pageTitle = title === 'Mohit Singh'
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 </head>
 <body>
+  <!-- Viewport-fixed animated canvas background — persists across all scroll positions -->
+  <CosmicBeams />
+
   <!-- Grain overlay — decorative, pointer-events none -->
   <div class="grain-layer" aria-hidden="true"></div>
 

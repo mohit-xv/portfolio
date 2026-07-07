@@ -18,10 +18,13 @@ html {
   font-size: 16px;
   /* Lenis takes over smooth scrolling in Phase 4 */
   scroll-behavior: smooth;
+  /* Ink fallback — shows if canvas fails to load (no-JS / unsupported browser) */
+  background-color: var(--ink);
 }
 
 body {
-  background-color: var(--ink);
+  /* Transparent so the fixed canvas (z-index: -1) is visible through the page */
+  background-color: transparent;
   color: var(--bone);
   font-family: var(--font-ui);
   font-size: var(--text-base);

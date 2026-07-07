@@ -11,13 +11,9 @@
  */
 import Eyebrow from '../ui/Eyebrow.astro';
 import Button from '../ui/Button.astro';
-import CosmicBeams from '../islands/CosmicBeams.astro';
 ---
 
 <section class="hero" aria-label="Introduction">
-  <!-- Animated background — gold light beams on a warm-black canvas -->
-  <CosmicBeams />
-
   <div class="container">
     <!-- Wordmark -->
     <p class="hero__wordmark" aria-label="Mohit Singh">Mohit Singh</p>
@@ -51,9 +47,7 @@ import CosmicBeams from '../islands/CosmicBeams.astro';
     padding-top: var(--space-32);
     padding-bottom: var(--space-32);
     position: relative;
-    overflow: hidden;
-    /* Plain fallback for no-JS / canvas unsupported */
-    background: var(--ink);
+    /* Canvas lives behind everything (z-index: -1); no background needed here */
   }
 
   /* Keep all text content above the canvas layer */
