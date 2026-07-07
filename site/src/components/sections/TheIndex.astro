@@ -10,12 +10,12 @@ import { indexRows } from '../../data/index-rows';
 
 <section class="the-index section" aria-label="Project Index">
   <div class="container">
-    <Eyebrow>Index</Eyebrow>
-    <h2 class="the-index__heading">All Work</h2>
+    <Eyebrow data-reveal>Index</Eyebrow>
+    <h2 class="the-index__heading" data-reveal>All Work</h2>
 
     <div class="the-index__ledger" role="list">
       {indexRows.map((row) => (
-        <div role="listitem">
+        <div role="listitem" data-reveal>
           <IndexRow
             title={row.title}
             description={row.description}

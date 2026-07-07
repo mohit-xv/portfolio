@@ -1,48 +1,34 @@
 ---
 /**
- * Selected Work — the scroll-drawn spine section.
- * Static in Phase 3: both exhibits visible, no draw animation yet.
- * Phase 4 will add: SVG path pathLength binding, React island (SpineScroll.tsx),
- * Lenis scroll progress → exhibit opacity + x drift.
- *
- * The SVG spine placeholder is styled but inert here.
+ * Selected Work — scroll-drawn spine section (Phase 4).
+ * SpineScroll island handles the animated SVG pathLength draw.
+ * Exhibits use the global [data-reveal] IntersectionObserver system.
  */
 import Eyebrow from '../ui/Eyebrow.astro';
+import SpineScroll from '../islands/SpineScroll.tsx';
 ---
 
 <section class="selected-work section" aria-label="Selected Work">
   <div class="container">
     <!-- Chapter head -->
-    <Eyebrow>Part I</Eyebrow>
-    <h2 class="selected-work__heading">Selected Work</h2>
+    <Eyebrow data-reveal>Part I</Eyebrow>
+    <h2 class="selected-work__heading" data-reveal>Selected Work</h2>
   </div>
 
   <!-- Spine + exhibits grid -->
   <div class="selected-work__stage">
-    <!-- Gold spine (static placeholder — Phase 4 draws this on scroll) -->
-    <div class="spine" aria-hidden="true">
-      <svg
-        class="spine__svg"
-        viewBox="0 0 2 800"
-        preserveAspectRatio="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <path
-          d="M1,0 C1,200 1,600 1,800"
-          stroke="var(--gold)"
-          stroke-width="1"
-          fill="none"
-          stroke-linecap="round"
-          class="spine__path"
-        />
-      </svg>
-    </div>
+    <!-- Animated scroll-drawn gold spine (Phase 4) -->
+    <SpineScroll client:visible />
 
     <!-- Exhibits -->
     <div class="exhibits container">
-      <!-- Exhibit I -->
-      <a href="/work/this-website" class="exhibit exhibit--left">
+      <!-- Exhibit I — drifts in from left on scroll -->
+      <a
+        href="/work/this-website"
+        class="exhibit exhibit--left"
+        data-reveal
+        data-reveal-dir="left"
+      >
         <span class="exhibit__number">No. I</span>
         <h3 class="exhibit__title">This Website</h3>
         <p class="exhibit__discipline">FinOps · Infrastructure · DevOps</p>
@@ -55,8 +41,13 @@ import Eyebrow from '../ui/Eyebrow.astro';
         <span class="exhibit__cta">Read the case study →</span>
       </a>
 
-      <!-- Exhibit II -->
-      <a href="/work/stock-screener" class="exhibit exhibit--right">
+      <!-- Exhibit II — drifts in from right on scroll -->
+      <a
+        href="/work/stock-screener"
+        class="exhibit exhibit--right"
+        data-reveal
+        data-reveal-dir="right"
+      >
         <span class="exhibit__number">No. II</span>
         <h3 class="exhibit__title">Stock Screener</h3>
         <p class="exhibit__discipline">On-demand Infrastructure · Python · FinOps</p>
@@ -87,30 +78,14 @@ import Eyebrow from '../ui/Eyebrow.astro';
     margin-bottom: var(--space-16);
   }
 
-  /* Stage: relative container for the centred spine */
+  /* Stage: relative container for the absolute-positioned SpineScroll island */
   .selected-work__stage {
     position: relative;
   }
 
-  /* Spine — vertical gold line centred in the section */
-  .spine {
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    transform: translateX(-50%);
-    width: 2px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .spine__svg {
-    width: 2px;
-    height: 100%;
-  }
-
-  .spine__path {
-    opacity: 0.45;
+  /* astro-island is an inline custom element by default — make it non-layout */
+  .selected-work__stage > astro-island {
+    display: contents;
   }
 
   /* Exhibits grid */

@@ -10,22 +10,24 @@ import { certs } from '../../data/certs';
 
 <section class="laurel-wall section" aria-label="AWS Certifications">
   <div class="container">
-    <Eyebrow>Verified</Eyebrow>
-    <h2 class="laurel-wall__heading">5× AWS Certified</h2>
-    <p class="laurel-wall__sub">
+    <Eyebrow data-reveal>Verified</Eyebrow>
+    <h2 class="laurel-wall__heading" data-reveal>5× AWS Certified</h2>
+    <p class="laurel-wall__sub" data-reveal>
       Every badge links to its Credly record. No claims without receipts.
     </p>
 
     <div class="laurel-wall__grid">
       {certs.map((cert) => (
-        <Laurel
-          name={cert.name}
-          shortName={cert.shortName}
-          level={cert.level}
-          year={cert.year}
-          href={cert.credly}
-          badgeImage={cert.badgeImage}
-        />
+        <div data-reveal>
+          <Laurel
+            name={cert.name}
+            shortName={cert.shortName}
+            level={cert.level}
+            year={cert.year}
+            href={cert.credly}
+            badgeImage={cert.badgeImage}
+          />
+        </div>
       ))}
     </div>
   </div>

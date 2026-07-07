@@ -7,9 +7,12 @@ import TheIndex from '../components/sections/TheIndex.astro';
 import LaurelWall from '../components/sections/LaurelWall.astro';
 import ContactCTA from '../components/sections/ContactCTA.astro';
 import Footer from '../components/sections/Footer.astro';
+import ColdOpen from '../components/islands/ColdOpen.tsx';
 ---
 
 <Base title="Mohit Singh">
+  <!-- Cold open title card — once per session, fires 'cold-open-complete' when done -->
+  <ColdOpen client:load />
   <Nav />
   <main>
     <Hero />

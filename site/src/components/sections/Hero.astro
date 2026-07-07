@@ -1,41 +1,38 @@
 ---
 /**
- * Hero — the above-the-fold first impression.
- * Wordmark: "Mohit Singh" in Fraunces.
- * Headline: "Pay for compute, not waste." — "waste" in italic gold.
- * Subline: eyebrow credentials.
- * Motion (Phase 4): line-by-line masked reveal, whileInView once.
- *
- * CosmicBeams island: Canvas-based animated gold light shafts behind the hero.
- * client:only="react" — browser-only, no SSR, no hydration mismatch.
+ * Hero — above-the-fold. Phase 4 motion:
+ *   - Wordmark / subline / CTA: CSS transition, triggered by 'cold-open-complete'
+ *   - Headline h1: React island (HeroReveal) — masked line-by-line reveal
+ *   - Scroll cue: fades in last
  */
 import Eyebrow from '../ui/Eyebrow.astro';
 import Button from '../ui/Button.astro';
+import HeroReveal from '../islands/HeroReveal.tsx';
 ---
 
 <section class="hero" aria-label="Introduction">
   <div class="container">
-    <!-- Wordmark -->
-    <p class="hero__wordmark" aria-label="Mohit Singh">Mohit Singh</p>
+    <!-- Wordmark — CSS reveal -->
+    <p class="hero__wordmark" data-hero-reveal="0" aria-label="Mohit Singh">
+      Mohit Singh
+    </p>
 
-    <!-- Headline -->
-    <h1 class="hero__headline">
-      Pay for Compute,<br />not <em class="hero__waste">waste</em>.
-    </h1>
+    <!-- Headline — Motion masked reveal (React island) -->
+    <HeroReveal client:load />
 
-    <!-- Credential subline -->
-    <Eyebrow class="hero__subline">
+    <!-- Credential subline — CSS reveal -->
+    <Eyebrow class="hero__subline" data-hero-reveal="0.26">
       Cloud Cost Optimisation &middot; DevOps &middot; 5&times; AWS Certified
     </Eyebrow>
 
-    <!-- Quiet scroll cue + primary CTA -->
-    <div class="hero__cta">
+    <!-- CTAs — CSS reveal -->
+    <div class="hero__cta" data-hero-reveal="0.34">
       <Button href="/work/this-website">See the work</Button>
       <Button href="/contact" variant="text">Get in touch</Button>
     </div>
 
-    <!-- Scroll prompt — disappears on scroll -->
-    <p class="hero__scroll-cue" aria-hidden="true">scroll</p>
+    <!-- Scroll cue — CSS reveal (latest) -->
+    <p class="hero__scroll-cue" data-hero-reveal="0.50" aria-hidden="true">scroll</p>
   </div>
 </section>
 
@@ -69,24 +66,6 @@ import Button from '../ui/Button.astro';
     margin-bottom: var(--space-4);
   }
 
-  /* Headline — slightly warmer than body bone, pulls toward gold without landing there */
-  .hero__headline {
-    font-family: var(--font-display);
-    font-size: var(--text-5xl);
-    font-weight: 300;
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
-    color: var(--heading-warm);
-    max-width: 14ch;
-  }
-
-  /* The italic gold word — Cormorant Garamond italic is naturally dramatic */
-  .hero__waste {
-    font-style: italic;
-    font-weight: 400; /* italic 400 in Cormorant Garamond has excellent contrast */
-    color: var(--gold-bright);
-  }
-
   /* Subline */
   .hero__subline {
     margin-top: var(--space-2);
@@ -101,7 +80,7 @@ import Button from '../ui/Button.astro';
     flex-wrap: wrap;
   }
 
-  /* Scroll cue — above the canvas */
+  /* Scroll cue */
   .hero__scroll-cue {
     position: absolute;
     z-index: 1;
@@ -116,14 +95,48 @@ import Button from '../ui/Button.astro';
     transform: rotate(180deg);
   }
 
+  /* ── CSS-driven reveals (triggered by .is-hero-visible added by script) ──
+     data-hero-reveal elements start invisible; the value is the delay in seconds. */
+  [data-hero-reveal] {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity   0.85s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Scroll cue has extra translation because it's position:absolute */
+  .hero__scroll-cue[data-hero-reveal] {
+    transform: translateY(14px) rotate(180deg);
+  }
+
+  /* Revealed state */
+  [data-hero-reveal].is-hero-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hero__scroll-cue.is-hero-visible {
+    transform: rotate(180deg); /* restore the rotation without the Y shift */
+  }
+
+  /* Reduced motion: skip to final state immediately */
+  @media (prefers-reduced-motion: reduce) {
+    [data-hero-reveal] {
+      opacity: 1;
+      transform: translateY(0);
+      transition: none;
+    }
+    .hero__scroll-cue[data-hero-reveal] {
+      transform: rotate(180deg);
+    }
+  }
+
   /* Mobile */
   @media (max-width: 640px) {
     .hero {
       padding-top: var(--space-24);
       align-items: flex-start;
-    }
-    .hero__headline {
-      font-size: clamp(3rem, 14vw, 5rem);
     }
     .hero__scroll-cue {
       display: none;
@@ -135,3 +148,36 @@ import Button from '../ui/Button.astro';
     }
   }
 </style>
+
+<script>
+  /**
+   * Trigger CSS reveals on hero elements when the cold open completes.
+   * Each [data-hero-reveal] value is a delay in seconds.
+   */
+  function revealHero() {
+    document.querySelectorAll<HTMLElement>('[data-hero-reveal]').forEach((el) => {
+      const delay = parseFloat(el.dataset.heroReveal ?? '0') * 1000;
+      setTimeout(() => el.classList.add('is-hero-visible'), delay);
+    });
+  }
+
+  // First visit: wait for cold open; subsequent visits: fire immediately
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const alreadyShown = sessionStorage.getItem('cold-open-shown');
+
+  if (reduced || alreadyShown) {
+    revealHero();
+  } else {
+    window.addEventListener('cold-open-complete', revealHero, { once: true });
+  }
+
+  // Re-run on View Transition navigation (each page load is fresh)
+  document.addEventListener('astro:page-load', () => {
+    // Reset and re-trigger if we're on the home hero
+    const els = document.querySelectorAll('[data-hero-reveal]');
+    if (els.length === 0) return;
+    els.forEach(el => el.classList.remove('is-hero-visible'));
+    // Brief timeout so the removal registers before re-adding
+    requestAnimationFrame(() => requestAnimationFrame(revealHero));
+  });
+</script>

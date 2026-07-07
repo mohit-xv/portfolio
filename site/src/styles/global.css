@@ -108,6 +108,29 @@ button {
   border-width: 0;
 }
 
+/* ── Section reveal — scroll-triggered fade-up / drift-in ──────────────────
+   Elements with [data-reveal] start hidden and transition to visible when
+   the IntersectionObserver in Base.astro adds the .is-visible class.
+   Direction variants: [data-reveal-dir="left"] / [data-reveal-dir="right"]
+   The global reduced-motion override below collapses transition-duration to
+   0.01ms, making these instant — no extra media query needed here.
+   ─────────────────────────────────────────────────────────────────────── */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-reveal][data-reveal-dir="left"]  { transform: translateX(-20px); }
+[data-reveal][data-reveal-dir="right"] { transform: translateX(20px); }
+
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+
 /* ── Reduced motion global gate ── */
 @media (prefers-reduced-motion: reduce) {
   *,

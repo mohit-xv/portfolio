@@ -6,11 +6,12 @@
 interface Props {
   tag?: 'p' | 'span' | 'div';
   class?: string;
+  [key: string]: unknown; // allow data-* and other HTML attrs
 }
-const { tag: Tag = 'p', class: className } = Astro.props;
+const { tag: Tag = 'p', class: className, ...rest } = Astro.props;
 ---
 
-<Tag class:list={['eyebrow', className]}>
+<Tag class:list={['eyebrow', className]} {...rest}>
   <slot />
 </Tag>
 
