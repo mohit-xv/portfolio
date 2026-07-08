@@ -18,5 +18,13 @@ export default defineConfig({
         // hand-rolled CSS only — no preprocessor needed
       },
     },
+    server: {
+      fs: {
+        // Allow Vite to serve files from the pnpm workspace root (one level up).
+        // Required because pnpm hoists @astrojs/react to my_portfolio_website/node_modules/
+        // when the root pnpm-workspace.yaml is present.
+        allow: ['..'],
+      },
+    },
   },
 });
