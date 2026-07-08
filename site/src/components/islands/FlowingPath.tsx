@@ -44,15 +44,17 @@ import { useScroll, useTransform, useSpring, useReducedMotion, motion } from 'mo
 //
 // Two-segment path — spacecraft viewpoint of a massive orbit.
 //
-//   M 1100,0          — entry: top of viewport, right of hero headline
-//   C 1500,40         — C1: pulls right, line heads toward top-right corner
-//     1600,140        — C2: apex off-screen right (~x=1550, y=150)
-//     1480,300        — segment end: re-enters viewport from right edge (~y=330)
-//   C 1360,460        — C3: sweeping left and down
-//     0,580           — C4: long leftward pull across full viewport width
-//     -100,700        — exit: lower-left, off-screen
+//   M 1180,-80        — entry: OFF-SCREEN above the top edge, so the line's
+//                       start tip is never visible (no exposed gap on mobile —
+//                       the orbit enters the frame like it was always there)
+//   C 1420,60         — C1: descends into view through the top edge (~x≈1270)
+//     1600,200        — C2: apex off-screen right (~x=1550)
+//     1480,340        — segment end: re-enters viewport from right edge
+//   C 1360,680        — C3: sweeping left and down
+//     0,800           — C4: long leftward pull across full viewport width
+//     -100,920        — exit: lower-left, off-screen
 //
-const PATH = 'M 1100,70 C 1500,110 1600,200 1480,340 C 1360,680 0,800 -100,920';
+const PATH = 'M 1180,-80 C 1420,60 1600,200 1480,340 C 1360,680 0,800 -100,920';
 
 // Drawing starts at 5% scroll (after the cold-open),
 // completes at 97% — full arc visible before reaching the absolute page-bottom.

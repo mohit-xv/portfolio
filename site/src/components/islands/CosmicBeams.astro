@@ -69,6 +69,16 @@
       length: number;     // beam rect length (CSS px)
     }
 
+    // Shooting star — lightning-fast meteor with a bright head and fading tail,
+    // burning out mid-flight like it hit the atmosphere.
+    interface Meteor {
+      x: number; y: number;   // head position (CSS px)
+      vx: number; vy: number; // velocity (CSS px per second)
+      born: number;           // spawn timestamp (ms)
+      dur: number;            // lifetime (ms) — it burns out before exiting
+      scale: number;          // per-meteor size variation
+    }
+
     // ── Module-level mutable state — reassigned by every boot() call ──────────
     let canvas: HTMLCanvasElement | null = null;
     let ctx: CanvasRenderingContext2D | null = null;
@@ -76,6 +86,10 @@
     let stars: Star[] = [];
     let beamSprites: BeamSprites[] = [];   // indexed by layer-1
     let bgSprite: HTMLCanvasElement | null = null;
+    let meteorSprite: HTMLCanvasElement | null = null;
+    let meteors: Meteor[] = [];
+    let nextMeteorAt = 0;   // timestamp of the next scheduled spawn (ms)
+    let lastNow      = 0;   // previous frame timestamp for dt
     let raf       = 0;
     let isReduced = false;
     let dpr       = 1;
@@ -174,7 +188,9 @@
       cx.fillStyle = bg;
       cx.fillRect(0, 0, w, h);
 
-      const glow = cx.createRadialGradient(w * 0.5, 0, 0, w * 0.5, 0, h * 0.65);
+      // Soft golden glow anchored to the top-LEFT corner — a light source just
+      // beyond the frame's edge, like dawn breaking off-screen.
+      const glow = cx.createRadialGradient(0, 0, 0, 0, 0, h * 0.85);
       glow.addColorStop(0,   c(MID, 0.14));
       glow.addColorStop(0.4, c(MID, 0.06));
       glow.addColorStop(1,   c(DEEP, 0));
@@ -327,6 +343,132 @@
       ctx!.globalAlpha = 1;
     }
 
+    // ── Shooting star ─────────────────────────────────────────────────────────
+    // Sprite baked once (blurs included); per frame it's one drawImage with
+    // translate/rotate/globalAlpha — follows the same caching pattern as beams.
+
+    const METEOR_TAIL = 240; // tail length within the sprite (CSS px)
+    const METEOR_H    = 30;  // sprite height (room for the head halo)
+    const METEOR_PAD  = 16;  // room beyond the head for its glow
+
+    function bakeMeteorSprite() {
+      const [cv, cx] = makeOffscreen(METEOR_TAIL + METEOR_PAD, METEOR_H);
+      const cy    = METEOR_H / 2;
+      const headX = METEOR_TAIL;
+
+      // Wide soft tail underlayer — the atmospheric glow around the streak
+      const soft = cx.createLinearGradient(0, 0, headX, 0);
+      soft.addColorStop(0,    'rgba(180,205,255,0)');
+      soft.addColorStop(0.55, 'rgba(190,212,255,0.10)');
+      soft.addColorStop(0.85, 'rgba(215,230,255,0.22)');
+      soft.addColorStop(1,    'rgba(235,242,255,0.30)');
+      cx.filter = 'blur(4px)';
+      cx.beginPath();
+      cx.moveTo(0, cy);
+      cx.lineTo(headX, cy - 3.2);
+      cx.lineTo(headX, cy + 3.2);
+      cx.closePath();
+      cx.fillStyle = soft;
+      cx.fill();
+
+      // Sharp tapered filament — the bright streak itself
+      const tail = cx.createLinearGradient(0, 0, headX, 0);
+      tail.addColorStop(0,    'rgba(200,220,255,0)');
+      tail.addColorStop(0.45, 'rgba(210,228,255,0.28)');
+      tail.addColorStop(0.85, 'rgba(240,246,255,0.75)');
+      tail.addColorStop(1,    'rgba(255,255,255,1)');
+      cx.filter = 'blur(0.6px)';
+      cx.beginPath();
+      cx.moveTo(0, cy);
+      cx.lineTo(headX, cy - 1.1);
+      cx.lineTo(headX, cy + 1.1);
+      cx.closePath();
+      cx.fillStyle = tail;
+      cx.fill();
+
+      // Head — hot white core inside a cool blue halo
+      cx.filter = 'none';
+      const halo = cx.createRadialGradient(headX, cy, 0, headX, cy, 9);
+      halo.addColorStop(0,    'rgba(255,255,255,0.95)');
+      halo.addColorStop(0.25, 'rgba(230,240,255,0.55)');
+      halo.addColorStop(0.6,  'rgba(190,215,255,0.18)');
+      halo.addColorStop(1,    'rgba(170,200,255,0)');
+      cx.beginPath();
+      cx.arc(headX, cy, 9, 0, Math.PI * 2);
+      cx.fillStyle = halo;
+      cx.fill();
+
+      meteorSprite = cv;
+    }
+
+    function scheduleNextMeteor(now: number) {
+      // Long random gaps (6–16s) keep it rare; a ~15% chance of a quick
+      // follow-up gives an occasional two-meteor moment. The hard cap of 2
+      // concurrent is enforced at spawn time.
+      const quick = Math.random() < 0.15;
+      nextMeteorAt = now + (quick ? 400 + Math.random() * 800
+                                  : 6000 + Math.random() * 10000);
+    }
+
+    function spawnMeteor(w: number, h: number, now: number) {
+      const ltr   = Math.random() < 0.6;                        // most travel left→right
+      const angle = (16 + Math.random() * 22) * Math.PI / 180;  // shallow descent
+      const speed = 1000 + Math.random() * 700;                 // lightning-fast (px/s)
+      meteors.push({
+        x:     ltr ? Math.random() * w * 0.55 : w * 0.45 + Math.random() * w * 0.55,
+        y:     -20 - Math.random() * h * 0.10, // ignites just above the frame
+        vx:    Math.cos(angle) * speed * (ltr ? 1 : -1),
+        vy:    Math.sin(angle) * speed,
+        born:  now,
+        dur:   700 + Math.random() * 500,      // burns out in under ~1.2s
+        scale: 0.8 + Math.random() * 0.5,
+      });
+    }
+
+    // Brightness over the meteor's life: fast ignition flash, then a decaying
+    // burn-out — it disappears mid-sky like it was consumed by the atmosphere.
+    function meteorAlpha(u: number) {
+      if (u < 0.12) return u / 0.12;
+      return Math.pow(1 - (u - 0.12) / 0.88, 1.6);
+    }
+
+    function updateMeteors(now: number, dtSec: number, w: number, h: number) {
+      if (nextMeteorAt === 0) {
+        nextMeteorAt = now + 3000 + Math.random() * 5000; // first one 3–8s in
+      }
+      if (now >= nextMeteorAt) {
+        if (meteors.length < 2) spawnMeteor(w, h, now);   // never more than 2
+        scheduleNextMeteor(now);
+      }
+      if (meteors.length === 0 || !meteorSprite) return;
+
+      const sprW = METEOR_TAIL + METEOR_PAD;
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        const u = (now - m.born) / m.dur;
+        if (u >= 1 || m.x < -300 || m.x > w + 300 || m.y > h + 300) {
+          meteors.splice(i, 1);
+          continue;
+        }
+        m.x += m.vx * dtSec;
+        m.y += m.vy * dtSec;
+
+        ctx!.save();
+        ctx!.translate(m.x, m.y);
+        ctx!.rotate(Math.atan2(m.vy, m.vx));
+        ctx!.globalAlpha = Math.max(0, Math.min(1, meteorAlpha(u)));
+        // Sprite's head sits at x = METEOR_TAIL; place the head at the origin
+        // so the tail trails behind the direction of travel.
+        ctx!.drawImage(
+          meteorSprite,
+          -METEOR_TAIL * m.scale, -(METEOR_H / 2) * m.scale,
+          sprW * m.scale, METEOR_H * m.scale,
+        );
+        ctx!.restore();
+      }
+      ctx!.globalAlpha = 1;
+    }
+
     // ── Resize + frame loop ───────────────────────────────────────────────────
     function resize() {
       if (!canvas || !ctx) return;
@@ -342,6 +484,7 @@
 
       // Re-bake all sprites for the new dimensions
       bakeBackground(w, h);
+      bakeMeteorSprite();
       beamSprites = [];
       for (let layer = 1; layer <= LAYERS; layer++) {
         beamSprites.push(bakeBeamSprites(h, layer));
@@ -359,10 +502,14 @@
       if (isReduced) { ctx.drawImage(bgSprite!, 0, 0, w, h); drawStars(); }
     }
 
-    function frame() {
+    function frame(now: number) {
       if (!canvas || !ctx) return;
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
+
+      // Real elapsed time for the meteor physics (clamped for tab-switch gaps)
+      const dtSec = lastNow > 0 ? Math.min((now - lastNow) / 1000, 0.05) : 0.016;
+      lastNow = now;
 
       // Everything below is drawImage() of cached bitmaps — no gradients,
       // no ctx.filter, no rasterization. Same pixels as the original code.
@@ -388,6 +535,9 @@
         }
       }
 
+      // Shooting star — drawn last so the streak passes in front of the sky
+      updateMeteors(now, dtSec, w, h);
+
       ctx.globalAlpha = 1;
       raf = requestAnimationFrame(frame);
     }
@@ -407,6 +557,11 @@
       if (!ctx) return;
 
       isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Fresh meteor state per boot (View Transitions / HMR re-entry)
+      meteors = [];
+      nextMeteorAt = 0;
+      lastNow = 0;
 
       resize(); // resize() bakes sprites and draws the static frame when isReduced
 
