@@ -332,14 +332,30 @@ export default function SpineSection() {
           </h2>
         </div>
 
-        {/* Exhibit cards — open editorial format */}
+        {/* Exhibit cards — open editorial format with center orbital hairline */}
         <div style={{
           maxWidth:      'var(--max-w)',
           margin:        '0 auto',
           padding:       '0 var(--gutter)',
           display:       'flex',
           flexDirection: 'column',
+          position:      'relative',
         }}>
+          {/* Hairline — mobile stand-in for the flowing path */}
+          <div
+            aria-hidden="true"
+            style={{
+              position:   'absolute',
+              left:       '50%',
+              top:        0,
+              bottom:     0,
+              width:      '1px',
+              transform:  'translateX(-50%)',
+              background: 'linear-gradient(to bottom, transparent, var(--gold) 15%, var(--gold) 85%, transparent)',
+              opacity:    0.25,
+              pointerEvents: 'none',
+            }}
+          />
           {EXHIBITS.map((ex, i) => (
             <MobileExhibit key={ex.href} ex={ex} index={i} />
           ))}

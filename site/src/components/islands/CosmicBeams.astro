@@ -72,18 +72,8 @@
     }
 
     function drawBackground(w: number, h: number) {
-      const bg = ctx!.createLinearGradient(0, 0, 0, h);
-      bg.addColorStop(0,   '#0D0B09');
-      bg.addColorStop(0.6, '#0F0C08');
-      bg.addColorStop(1,   '#120D07');
-      ctx!.fillStyle = bg;
-      ctx!.fillRect(0, 0, w, h);
-
-      const glow = ctx!.createRadialGradient(w * 0.5, 0, 0, w * 0.5, 0, h * 0.65);
-      glow.addColorStop(0,   c(MID, 0.14));
-      glow.addColorStop(0.4, c(MID, 0.06));
-      glow.addColorStop(1,   c(DEEP, 0));
-      ctx!.fillStyle = glow;
+      // Universe-black: no ambient glow. Gold appears only where beams are.
+      ctx!.fillStyle = '#08080C';
       ctx!.fillRect(0, 0, w, h);
     }
 
