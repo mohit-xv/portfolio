@@ -1,12 +1,14 @@
 ---
 /**
- * CosmicBeams — animated diagonal gold light shafts + sparse star field.
+ * CosmicBeams — animated diagonal gold light shafts + sparse star field
+ *                + homepage orbital ribbon (FlowingPath merged in).
  * Pure Astro component: renders a <canvas> and runs a <script> client-side.
  * No React needed — canvas animation has no state or re-renders.
  *
- * The boot() function is called on first load AND on every astro:page-load
- * event so the animation survives Astro View Transition page swaps and HMR
- * hot-reloads without manual refreshing.
+ * The orbital ribbon was previously a separate SVG React island (FlowingPath).
+ * Drawing it here eliminates SVG pathLength repaints and CSS filter rasterisation,
+ * replacing them with GPU-native canvas blur + screen compositing for butter-smooth
+ * scroll performance.
  */
 ---
 
@@ -33,6 +35,38 @@
     const LAYERS          = 3;
     const BEAMS_PER_LAYER = 6;
 
+    // ── Orbital ribbon constants ──────────────────────────────────────────────
+    // Path: M 1100,70 C 1500,110 1600,200 1480,340 C 1360,680 0,800 -100,920
+    // Defined in 1440×900 coordinate space (matches original SVG viewBox).
+    const ORBIT_SCROLL_START = 0.05;   // page-fraction where ribbon begins drawing
+    const ORBIT_SCROLL_END   = 0.97;   // page-fraction where ribbon is fully drawn
+    const ORBIT_K            = 65;     // spring stiffness
+    const ORBIT_D            = 24;     // spring damping
+    const ORBIT_N            = 300;    // curve subdivision — higher = smoother arc
+
+    const SEG1: [number,number][] = [[1100,70],[1500,110],[1600,200],[1480,340]];
+    const SEG2: [number,number][] = [[1480,340],[1360,680],[0,800],[-100,920]];
+
+    function cubicBez(t: number, p: [number,number][]): [number,number] {
+      const u = 1 - t;
+      return [
+        u*u*u*p[0][0] + 3*u*u*t*p[1][0] + 3*u*t*t*p[2][0] + t*t*t*p[3][0],
+        u*u*u*p[0][1] + 3*u*u*t*p[1][1] + 3*u*t*t*p[2][1] + t*t*t*p[3][1],
+      ];
+    }
+
+    // Pre-compute all orbit points once — path never changes
+    const orbitPts: [number,number][] = (() => {
+      const pts: [number,number][] = [];
+      for (let i = 0; i <= ORBIT_N; i++) {
+        const g = i / ORBIT_N;
+        pts.push(g <= 0.5
+          ? cubicBez(g * 2,         SEG1)
+          : cubicBez((g - 0.5) * 2, SEG2));
+      }
+      return pts;
+    })();
+
     interface Beam {
       x: number; y: number; width: number; length: number;
       angleDeg: number; speed: number; baseOpacity: number;
@@ -43,7 +77,7 @@
       x: number; y: number;
       radius: number; baseOpacity: number;
       pulse: number; pulseSpeed: number;
-      tier: 0 | 1 | 2;  // 0=distant cool, 1=medium neutral, 2=bright warm
+      tier: 0 | 1 | 2;
     }
 
     // ── Module-level mutable state — reassigned by every boot() call ──────────
@@ -51,8 +85,14 @@
     let ctx: CanvasRenderingContext2D | null = null;
     let beams: Beam[] = [];
     let stars: Star[] = [];
-    let raf       = 0;
-    let isReduced = false;
+    let raf        = 0;
+    let isReduced  = false;
+    let isHome     = false;
+
+    // Orbit spring state
+    let orbitProgress = 0;
+    let orbitVelocity = 0;
+    let orbitTarget   = 0;
 
     // ── Beam helpers ─────────────────────────────────────────────────────────
     function makeBeam(w: number, h: number, layer: number): Beam {
@@ -119,55 +159,99 @@
       ctx!.restore();
     }
 
+    // ── Orbital ribbon helpers ────────────────────────────────────────────────
+    function strokeOrbitLayer(
+      w: number, h: number, count: number,
+      lineWidth: number, color: string, blurPx: number,
+    ) {
+      if (count < 2 || !ctx) return;
+      const sx = w / 1440;
+      const sy = h / 900;
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      if (blurPx > 0) ctx.filter = `blur(${blurPx}px)`;
+      ctx.strokeStyle = color;
+      ctx.lineWidth   = lineWidth;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      ctx.beginPath();
+      for (let i = 0; i < count; i++) {
+        const x = orbitPts[i][0] * sx;
+        const y = orbitPts[i][1] * sy;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawOrbit(w: number, h: number) {
+      if (!isHome || orbitProgress < 0.001) return;
+      const n = Math.min(ORBIT_N + 1, Math.floor(orbitProgress * ORBIT_N) + 1);
+      // Three layers match original FlowingPath: outer bloom, mid corona, filament
+      strokeOrbitLayer(w, h, n, 52,  'rgba(192,160,98,0.055)', 22);
+      strokeOrbitLayer(w, h, n, 11,  'rgba(192,160,98,0.15)',   4);
+      strokeOrbitLayer(w, h, n, 1.5, 'rgba(227,194,125,0.90)',  0);
+    }
+
+    function updateOrbitSpring() {
+      if (!isHome) return;
+      const dt  = 1 / 60;
+      const err = orbitTarget - orbitProgress;
+      orbitVelocity  += (ORBIT_K * err - ORBIT_D * orbitVelocity) * dt;
+      orbitProgress   = Math.max(0, Math.min(1, orbitProgress + orbitVelocity * dt));
+    }
+
+    function onOrbitScroll() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) { orbitTarget = 0; return; }
+      const raw = window.scrollY / max;
+      orbitTarget = Math.max(0, Math.min(1,
+        (raw - ORBIT_SCROLL_START) / (ORBIT_SCROLL_END - ORBIT_SCROLL_START)
+      ));
+    }
+
     // ── Star helpers ─────────────────────────────────────────────────────────
     function makeStars(w: number, h: number) {
       stars = [];
 
-      // Tier 0 — 130 distant field stars: tiny, very faint, cool blue-white
-      // Biased slightly toward upper 65% of screen for a natural sky feel
       for (let i = 0; i < 130; i++) {
         const yBias = Math.random() < 0.65
           ? Math.random() * h * 0.70
           : Math.random() * h;
         stars.push({
-          x:           Math.random() * w,
-          y:           yBias,
-          radius:      0.20 + Math.random() * 0.55,
+          x: Math.random() * w, y: yBias,
+          radius: 0.20 + Math.random() * 0.55,
           baseOpacity: 0.030 + Math.random() * 0.130,
-          pulse:       Math.random() * Math.PI * 2,
-          pulseSpeed:  0.0008 + Math.random() * 0.0022,
-          tier:        0,
+          pulse: Math.random() * Math.PI * 2,
+          pulseSpeed: 0.0008 + Math.random() * 0.0022,
+          tier: 0,
         });
       }
 
-      // Tier 1 — 48 medium stars: slightly brighter, neutral white, gentle twinkle
       for (let i = 0; i < 48; i++) {
         stars.push({
-          x:           Math.random() * w,
-          y:           Math.random() * h,
-          radius:      0.55 + Math.random() * 0.60,
+          x: Math.random() * w, y: Math.random() * h,
+          radius: 0.55 + Math.random() * 0.60,
           baseOpacity: 0.110 + Math.random() * 0.180,
-          pulse:       Math.random() * Math.PI * 2,
-          pulseSpeed:  0.0012 + Math.random() * 0.0024,
-          tier:        1,
+          pulse: Math.random() * Math.PI * 2,
+          pulseSpeed: 0.0012 + Math.random() * 0.0024,
+          tier: 1,
         });
       }
 
-      // Tier 2 — 3 bright near stars: warm cream, wide glow halo, diffraction spikes
       for (let i = 0; i < 3; i++) {
         stars.push({
-          x:           (0.06 + Math.random() * 0.88) * w,
-          y:           (0.03 + Math.random() * 0.75) * h,
-          radius:      1.15 + Math.random() * 0.95,
+          x: (0.06 + Math.random() * 0.88) * w,
+          y: (0.03 + Math.random() * 0.75) * h,
+          radius: 1.15 + Math.random() * 0.95,
           baseOpacity: 0.52 + Math.random() * 0.34,
-          pulse:       Math.random() * Math.PI * 2,
-          pulseSpeed:  0.0014 + Math.random() * 0.0016,
-          tier:        2,
+          pulse: Math.random() * Math.PI * 2,
+          pulseSpeed: 0.0014 + Math.random() * 0.0016,
+          tier: 2,
         });
       }
     }
 
-    // Diffraction spike — the fine cross that appears on bright stars in telescope photos
     function drawSpike(x: number, y: number, len: number, angle: number, opacity: number) {
       ctx!.save();
       ctx!.translate(x, y);
@@ -189,14 +273,12 @@
         const opacity = s.baseOpacity * (0.72 + Math.sin(s.pulse) * 0.28);
 
         if (s.tier === 0) {
-          // Tiny cool-blue distant field star — no halo, just the dot
           ctx!.beginPath();
           ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
           ctx!.fillStyle = `rgba(200,218,255,${opacity.toFixed(3)})`;
           ctx!.fill();
 
         } else if (s.tier === 1) {
-          // Medium neutral-white star — very faint aura + core dot
           const aura = ctx!.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.radius * 4);
           aura.addColorStop(0, `rgba(240,242,248,${(opacity * 0.20).toFixed(3)})`);
           aura.addColorStop(1, 'rgba(240,242,248,0)');
@@ -204,14 +286,12 @@
           ctx!.arc(s.x, s.y, s.radius * 4, 0, Math.PI * 2);
           ctx!.fillStyle = aura;
           ctx!.fill();
-
           ctx!.beginPath();
           ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
           ctx!.fillStyle = `rgba(240,242,248,${opacity.toFixed(3)})`;
           ctx!.fill();
 
         } else {
-          // Tier 2 — bright near star: multi-stop glow halo + diffraction cross + warm core
           const haloR = s.radius * 9;
           const halo  = ctx!.createRadialGradient(s.x, s.y, 0, s.x, s.y, haloR);
           halo.addColorStop(0,    `rgba(255,244,209,${(opacity * 0.45).toFixed(3)})`);
@@ -223,14 +303,12 @@
           ctx!.fillStyle = halo;
           ctx!.fill();
 
-          // Diffraction cross — horizontal + vertical + softer 45° diagonals
           const spikeLen = s.radius * 14;
-          drawSpike(s.x, s.y, spikeLen,        0,            opacity);
-          drawSpike(s.x, s.y, spikeLen,        Math.PI / 2,  opacity);
-          drawSpike(s.x, s.y, spikeLen * 0.6,  Math.PI / 4,  opacity * 0.55);
-          drawSpike(s.x, s.y, spikeLen * 0.6, -Math.PI / 4,  opacity * 0.55);
+          drawSpike(s.x, s.y, spikeLen,       0,           opacity);
+          drawSpike(s.x, s.y, spikeLen,       Math.PI / 2, opacity);
+          drawSpike(s.x, s.y, spikeLen * 0.6, Math.PI / 4, opacity * 0.55);
+          drawSpike(s.x, s.y, spikeLen * 0.6,-Math.PI / 4, opacity * 0.55);
 
-          // Bright warm-cream core dot
           ctx!.beginPath();
           ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
           ctx!.fillStyle = `rgba(255,252,235,${opacity.toFixed(3)})`;
@@ -258,9 +336,16 @@
         }
       }
       makeStars(w, h);
-      // In reduced-motion mode there is no RAF loop — redraw the static frame
-      // so a window resize doesn't leave the canvas permanently blank.
-      if (isReduced) { drawBackground(w, h); drawStars(); }
+      if (isReduced) {
+        drawBackground(w, h);
+        drawStars();
+        if (isHome) {
+          orbitProgress = 1;
+          drawOrbit(w, h);
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.filter = 'none';
+        }
+      }
     }
 
     function frame() {
@@ -290,17 +375,23 @@
       }
 
       ctx.filter = 'none';
+
+      // Orbital ribbon — spring-follows scroll, only on homepage
+      updateOrbitSpring();
+      drawOrbit(w, h);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.filter = 'none';
+
       raf = requestAnimationFrame(frame);
     }
 
-    // ── boot — safe to call multiple times (cancels previous loop first) ─────
+    // ── boot — safe to call multiple times ───────────────────────────────────
     function boot() {
-      // Cancel any running loop and remove the resize handler. We use
-      // window.__cosmicResizeFn so that after an HMR module re-evaluation
-      // the previous closure's resize reference can still be removed.
       cancelAnimationFrame(raf);
       const prevResize = (window as any).__cosmicResizeFn;
       if (prevResize) window.removeEventListener('resize', prevResize);
+      const prevScroll = (window as any).__cosmicScrollFn;
+      if (prevScroll) window.removeEventListener('scroll', prevScroll);
 
       canvas = document.getElementById('cosmic-beams') as HTMLCanvasElement | null;
       if (!canvas) return;
@@ -308,8 +399,20 @@
       if (!ctx) return;
 
       isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      isHome    = window.location.pathname === '/';
 
-      resize(); // resize() calls drawBackground+drawStars when isReduced
+      // Reset orbit spring
+      orbitProgress = 0;
+      orbitVelocity = 0;
+      orbitTarget   = 0;
+
+      if (isHome) {
+        onOrbitScroll(); // sync to current scroll position immediately
+        (window as any).__cosmicScrollFn = onOrbitScroll;
+        window.addEventListener('scroll', onOrbitScroll, { passive: true });
+      }
+
+      resize();
 
       if (!isReduced) {
         raf = requestAnimationFrame(frame);
@@ -319,9 +422,6 @@
       window.addEventListener('resize', resize, { passive: true });
     }
 
-    // Guard against astro:page-load listener accumulation across HMR
-    // re-evaluations. Each new IIFE creates a new boot reference; storing
-    // it on window lets us remove the previous one before adding the new one.
     const prevBoot = (window as any).__cosmicBootFn;
     if (prevBoot) document.removeEventListener('astro:page-load', prevBoot);
     (window as any).__cosmicBootFn = boot;
