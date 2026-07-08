@@ -71,12 +71,10 @@
     pointer-events: none;
     z-index: 0;
     overflow: visible;
-    /* GPU compositor layer — mix-blend-mode removed so nothing blocks promotion */
+    /* Screen blend — gold luminosity on dark backgrounds */
+    mix-blend-mode: screen;
     will-change: transform;
     transform: translateZ(0);
-    /* GPU-native glow applied at composite time — one pass, nearly free.
-       Replaces per-path blur() which was CPU-rasterized on every scroll frame. */
-    filter: drop-shadow(0 0 14px rgba(192, 160, 98, 0.5));
   }
 
   /* ── Scroll-driven draw ──────────────────────────────────────────────────
@@ -98,11 +96,9 @@
     to   { stroke-dashoffset: 0;   }
   }
 
-  /* Layer opacities — no per-path blur.
-     Wide gradient strokes give natural soft falloff; drop-shadow on the
-     SVG wrapper provides the glow without per-frame CPU rasterization.  */
-  .bloom    { opacity: 0.08; }
-  .corona   { opacity: 0.18; }
+  /* Layer-specific opacity and blur — original values restored */
+  .bloom    { opacity: 0.055; filter: blur(22px); }
+  .corona   { opacity: 0.15;  filter: blur(4px);  }
   .filament { opacity: 0.90; }
 
   /* ── Fallback ─────────────────────────────────────────────────────────────

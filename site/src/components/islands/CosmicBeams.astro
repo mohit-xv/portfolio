@@ -4,14 +4,15 @@
  * Pure Astro component: renders a <canvas> and runs a <script> client-side.
  * No React needed — canvas animation has no state or re-renders.
  *
- * Performance fixes:
- *   - ctx.filter REMOVED from beam loops — it was software-rasterized CPU blur
- *     applied 18× per frame, overrunning the 16ms frame budget and causing jank.
- *     Gradients provide natural soft falloff without the cost.
- *   - Desktop: throttled to ~30fps — beam movement is too slow to notice the cap.
- *     Time-delta (dt) keeps visual speed identical to 60fps.
- *   - Mobile (≤768px): draw once, no RAF loop. Native scroll is smooth on its own;
- *     a competing animation loop is the enemy.
+ * Performance strategy (visuals unchanged):
+ *   - Desktop: throttled to ~30fps — beam movement is slow ambient motion,
+ *     imperceptible at 30fps. dt-compensation keeps visual speed identical.
+ *   - During scroll: drops to ~2fps (500ms intervals). Beams move <0.1px
+ *     visible per interval so they appear alive but the main thread is free
+ *     for scroll compositing. Full animation resumes 200ms after scroll stops.
+ *   - Mobile (≤768px): static frame drawn once, no RAF loop.
+ *     Native iOS/Android scroll is already smooth; a competing animation
+ *     loop on mobile is the source of roughness, not the visuals.
  */
 ---
 
@@ -48,14 +49,16 @@
       tier: 0 | 1 | 2;
     }
 
-    // ── Module-level mutable state ─────────────────────────────────────────────
+    // ── Module-level mutable state ────────────────────────────────────────────
     let canvas: HTMLCanvasElement | null = null;
     let ctx: CanvasRenderingContext2D | null = null;
-    let beams: Beam[] = [];
-    let stars: Star[] = [];
-    let raf           = 0;
-    let isReduced     = false;
-    let lastFrameTime = 0;   // for 30fps throttle
+    let beams: Beam[]  = [];
+    let stars: Star[]  = [];
+    let raf            = 0;
+    let isReduced      = false;
+    let lastFrameTime  = 0;
+    let isScrolling    = false;
+    let scrollTimer    = 0;
 
     // ── Beam helpers ──────────────────────────────────────────────────────────
     function makeBeam(w: number, h: number, layer: number): Beam {
@@ -176,7 +179,6 @@
       ctx!.restore();
     }
 
-    // dt: time-delta multiplier (1.0 at 60fps, ~2.0 at 30fps) for frame-rate-independent twinkle
     function drawStars(dt: number = 1) {
       for (const s of stars) {
         s.pulse += s.pulseSpeed * dt;
@@ -225,20 +227,22 @@
       }
     }
 
-    // ── Static frame — called once for reduced-motion and mobile ─────────────
+    // ── Static frame — reduced-motion and mobile ──────────────────────────────
     function drawStatic() {
       if (!canvas || !ctx) return;
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
       drawBackground(w, h);
-      // Beams at their initial positions — no filter, gradients give natural falloff
       for (let layer = 1; layer <= LAYERS; layer++) {
+        ctx.filter = `blur(${2 + layer * 2}px)`;
         for (const b of beams) { if (b.layer !== layer) continue; drawOuter(b); }
       }
       for (let layer = 1; layer <= LAYERS; layer++) {
+        ctx.filter = `blur(${0.5 + layer * 0.4}px)`;
         for (const b of beams) { if (b.layer !== layer) continue; drawCore(b); }
       }
-      drawStars(0); // dt=0 — don't advance pulse, just draw current star state
+      ctx.filter = 'none';
+      drawStars(0);
     }
 
     // ── Resize ────────────────────────────────────────────────────────────────
@@ -260,24 +264,24 @@
         }
       }
       makeStars(w, h);
-      // Redraw static frame whenever dimensions change (handles orientation changes on mobile)
       if (isReduced || w <= 768) drawStatic();
     }
 
-    // ── Animated frame loop (desktop only) ────────────────────────────────────
+    // ── Animated frame loop (desktop only) ───────────────────────────────────
     function frame(t: number) {
       if (!canvas || !ctx) return;
 
-      // Throttle to ~30fps — beam animation is slow ambient motion, imperceptible at 30fps.
-      // Saves the main thread for scroll compositing.
+      // During active scroll: drop to ~2fps so the main thread stays free
+      // for scroll compositing. Beams move <0.1px per 500ms — imperceptible.
+      // Full 30fps resumes 200ms after scroll stops.
+      const minInterval = isScrolling ? 500 : 33;
       const elapsed = lastFrameTime > 0 ? t - lastFrameTime : 16.67;
-      if (elapsed < 30) { // skip frames until ~33ms have passed
+      if (elapsed < minInterval) {
         raf = requestAnimationFrame(frame);
         return;
       }
-      // dt: speed multiplier so visual velocity is independent of actual fps.
-      // At 30fps: elapsed≈33ms → dt≈2.0, beams advance 2× per draw = same visual speed.
-      const dt = Math.min(elapsed / 16.67, 4);
+      // dt keeps visual speed the same regardless of actual fps
+      const dt = Math.min(elapsed / 16.67, 6);
       lastFrameTime = t;
 
       const w = canvas.offsetWidth;
@@ -285,9 +289,8 @@
       drawBackground(w, h);
       drawStars(dt);
 
-      // ctx.filter REMOVED — it was software-rasterizing the canvas on CPU every frame.
-      // Gradients in drawOuter/drawCore already provide natural soft falloff.
       for (let layer = 1; layer <= LAYERS; layer++) {
+        ctx.filter = `blur(${2 + layer * 2}px)`;
         for (const b of beams) {
           if (b.layer !== layer) continue;
           b.y     -= b.speed * dt;
@@ -296,13 +299,16 @@
           drawOuter(b);
         }
       }
+
       for (let layer = 1; layer <= LAYERS; layer++) {
+        ctx.filter = `blur(${0.5 + layer * 0.4}px)`;
         for (const b of beams) {
           if (b.layer !== layer) continue;
           drawCore(b);
         }
       }
 
+      ctx.filter = 'none';
       raf = requestAnimationFrame(frame);
     }
 
@@ -311,6 +317,8 @@
       cancelAnimationFrame(raf);
       const prevResize = (window as any).__cosmicResizeFn;
       if (prevResize) window.removeEventListener('resize', prevResize);
+      const prevScroll = (window as any).__cosmicScrollFn;
+      if (prevScroll) window.removeEventListener('scroll', prevScroll);
 
       canvas = document.getElementById('cosmic-beams') as HTMLCanvasElement | null;
       if (!canvas) return;
@@ -320,16 +328,29 @@
       isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const isMobile = window.innerWidth <= 768;
 
-      resize(); // sets canvas dimensions, creates beams + stars
+      resize();
 
       if (isReduced || isMobile) {
-        // Static mode — draw the scene once and stop.
-        // Mobile: native scroll is already smooth; a 60fps canvas loop would fight it.
         drawStatic();
-      } else {
-        lastFrameTime = 0;
-        raf = requestAnimationFrame(frame);
+        (window as any).__cosmicResizeFn = resize;
+        window.addEventListener('resize', resize, { passive: true });
+        return;
       }
+
+      // Scroll awareness — drop frame rate while scrolling so the main thread
+      // stays free for compositor work. Visual impact: beams barely move during
+      // scroll (they're slow anyway), full animation resumes instantly after.
+      isScrolling = false;
+      const scrollFn = () => {
+        isScrolling = true;
+        clearTimeout(scrollTimer);
+        scrollTimer = window.setTimeout(() => { isScrolling = false; }, 200) as unknown as number;
+      };
+      (window as any).__cosmicScrollFn = scrollFn;
+      window.addEventListener('scroll', scrollFn, { passive: true });
+
+      lastFrameTime = 0;
+      raf = requestAnimationFrame(frame);
 
       (window as any).__cosmicResizeFn = resize;
       window.addEventListener('resize', resize, { passive: true });
