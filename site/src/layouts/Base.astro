@@ -155,11 +155,16 @@ const pageTitle = title === 'Mohit Singh'
   let raf = 0;
 
   function initLenis() {
-    if (lenis) { lenis.destroy(); cancelAnimationFrame(raf); }
+    if (lenis) { lenis.destroy(); cancelAnimationFrame(raf); lenis = null; }
 
     // Respect prefers-reduced-motion — Lenis still fires scroll events but
     // turns off the lerp so users with vestibular disorders aren't affected.
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Touch-primary devices (phones/tablets) keep their native momentum
+    // scroll — it's the smoothest possible on touch, and Lenis intercepting
+    // touch events fights the OS physics. Desktop keeps the weighted feel.
+    if (window.matchMedia('(pointer: coarse)').matches) return;
 
     lenis = new Lenis({
       duration: reduced ? 0 : 1.15,
@@ -185,16 +190,25 @@ const pageTitle = title === 'Mohit Singh'
 
 <script>
   /**
-   * Scroll progress bar — sets --scroll-pct on <html> so the CSS bar grows.
+   * Scroll progress bar — sets transform: scaleX on the bar element.
+   * scaleX is compositor-only (no style/layout invalidation like a root CSS
+   * variable), and updates are batched to one write per frame via rAF.
    * Runs on every page; re-syncs on Astro View Transition navigation.
    */
   function initScrollProgress() {
+    const bar = document.querySelector<HTMLElement>('.scroll-progress');
+    if (!bar) return;
+    let ticking = false;
     const update = () => {
+      ticking = false;
       const max = document.documentElement.scrollHeight - window.innerHeight;
-      const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
-      document.documentElement.style.setProperty('--scroll-pct', `${pct.toFixed(2)}%`);
+      const pct = max > 0 ? window.scrollY / max : 0;
+      bar.style.transform = `scaleX(${pct.toFixed(4)})`;
     };
-    window.addEventListener('scroll', update, { passive: true });
+    const onScroll = () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
     update();
   }
   initScrollProgress();

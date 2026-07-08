@@ -155,17 +155,21 @@ button {
   .spine-mobile  { display: block; }
 }
 
-/* ── Scroll progress bar — fills left-to-right as the user scrolls ── */
+/* ── Scroll progress bar — fills left-to-right as the user scrolls ──
+   Driven by transform: scaleX (set from JS) instead of width so updates
+   run on the GPU compositor — no per-scroll style invalidation. */
 .scroll-progress {
   position:       fixed;
   top:            0;
   left:           0;
-  width:          var(--scroll-pct, 0%);
+  width:          100%;
   height:         1px;
   background:     linear-gradient(to right, var(--gold), var(--gold-bright));
   z-index:        500;
   pointer-events: none;
   transform-origin: left;
+  transform:      scaleX(0);
+  will-change:    transform;
 }
 
 /* ── Scrollbar (optional — matches brand) ── */

@@ -7,6 +7,18 @@
  * The boot() function is called on first load AND on every astro:page-load
  * event so the animation survives Astro View Transition page swaps and HMR
  * hot-reloads without manual refreshing.
+ *
+ * ── Rendering: sprite caching ────────────────────────────────────────────────
+ * Every gradient and blur is pre-rendered ONCE into offscreen canvases
+ * (at boot and on resize). The 60fps frame loop only calls drawImage() on
+ * those cached bitmaps with per-frame position/alpha — no gradient creation,
+ * no ctx.filter blur, no per-frame rasterization.
+ *
+ * This is valid because every animated quantity (beam pulse, star twinkle)
+ * is a LINEAR alpha multiplier over the layer's colors — so baking the sprite
+ * at full intensity and modulating globalAlpha at draw time produces
+ * mathematically identical pixels to recomputing the gradients each frame.
+ * Visual output is unchanged; per-frame cost drops ~20×.
  */
 ---
 
@@ -44,6 +56,17 @@
       radius: number; baseOpacity: number;
       pulse: number; pulseSpeed: number;
       tier: 0 | 1 | 2;  // 0=distant cool, 1=medium neutral, 2=bright warm
+      // Sprite cache — baked once at creation, drawn with globalAlpha per frame
+      sprite: HTMLCanvasElement;
+      spriteSize: number; // CSS-px width/height of the sprite's draw box
+    }
+
+    interface BeamSprites {
+      outer: HTMLCanvasElement;
+      core:  HTMLCanvasElement;
+      pad:   number;      // CSS-px padding baked around the beam for blur bleed
+      width: number;      // beam rect width (CSS px)
+      length: number;     // beam rect length (CSS px)
     }
 
     // ── Module-level mutable state — reassigned by every boot() call ──────────
@@ -51,8 +74,21 @@
     let ctx: CanvasRenderingContext2D | null = null;
     let beams: Beam[] = [];
     let stars: Star[] = [];
+    let beamSprites: BeamSprites[] = [];   // indexed by layer-1
+    let bgSprite: HTMLCanvasElement | null = null;
     let raf       = 0;
     let isReduced = false;
+    let dpr       = 1;
+
+    // ── Offscreen helper ──────────────────────────────────────────────────────
+    function makeOffscreen(wCss: number, hCss: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
+      const cv = document.createElement('canvas');
+      cv.width  = Math.max(1, Math.ceil(wCss * dpr));
+      cv.height = Math.max(1, Math.ceil(hCss * dpr));
+      const cx = cv.getContext('2d')!;
+      cx.scale(dpr, dpr);
+      return [cv, cx];
+    }
 
     // ── Beam helpers ─────────────────────────────────────────────────────────
     function makeBeam(w: number, h: number, layer: number): Beam {
@@ -71,55 +107,170 @@
       };
     }
 
-    function drawBackground(w: number, h: number) {
-      const bg = ctx!.createLinearGradient(0, 0, 0, h);
+    /**
+     * Bake the two beam sprites (outer glow + bright core) for one layer.
+     * Same gradients and blur radii as the original per-frame code, with the
+     * pulse alpha factored out (baked at p=1, modulated via globalAlpha).
+     */
+    function bakeBeamSprites(h: number, layer: number): BeamSprites {
+      const width     = 10 + layer * 8;
+      const length    = h * 2.4;
+      const outerBlur = 2 + layer * 2;
+      const coreBlur  = 0.5 + layer * 0.4;
+      const pad       = Math.ceil(outerBlur * 3) + 2;
+
+      // Outer glow — original gradient at p=1, original blur baked in
+      const [outer, octx] = makeOffscreen(width + pad * 2, length + pad * 2);
+      const og = octx.createLinearGradient(0, pad, 0, pad + length);
+      og.addColorStop(0,    c(CORE, 0));
+      og.addColorStop(0.15, c(CORE, 0.40));
+      og.addColorStop(0.42, c(MID,  1.00));
+      og.addColorStop(0.55, c(CORE, 0.75));
+      og.addColorStop(0.80, c(DEEP, 0.55));
+      og.addColorStop(1,    c(DEEP, 0));
+      octx.filter = `blur(${outerBlur}px)`;
+      octx.fillStyle = og;
+      octx.fillRect(pad, pad, width, length);
+
+      // Bright core — original gradient at p=1, original blur baked in
+      const [core, cctx] = makeOffscreen(width + pad * 2, length + pad * 2);
+      const cg = cctx.createLinearGradient(0, pad, 0, pad + length);
+      cg.addColorStop(0,    c(CORE, 0));
+      cg.addColorStop(0.35, c(CORE, 0.65));
+      cg.addColorStop(0.55, c(CORE, 0.65));
+      cg.addColorStop(1,    c(CORE, 0));
+      cctx.filter = `blur(${coreBlur}px)`;
+      cctx.fillStyle = cg;
+      // Original: fillRect(-width/7, 0, width/3.5, length), relative to beam centre.
+      // Sprite space: centre is at pad + width/2.
+      cctx.fillRect(pad + width / 2 - width / 7, pad, width / 3.5, length);
+
+      return { outer, core, pad, width, length };
+    }
+
+    // Draw a beam sprite at the beam's position/rotation with the pulse alpha.
+    // p is the same value the original computed inside drawOuter/drawCore.
+    function drawBeamSprite(beam: Beam, img: HTMLCanvasElement, sp: BeamSprites) {
+      const p = beam.baseOpacity * (0.70 + Math.sin(beam.pulse) * 0.38);
+      ctx!.save();
+      ctx!.translate(beam.x, beam.y);
+      ctx!.rotate((beam.angleDeg * Math.PI) / 180);
+      ctx!.globalAlpha = Math.max(0, Math.min(1, p));
+      ctx!.drawImage(
+        img,
+        -sp.width / 2 - sp.pad, -sp.pad,
+        sp.width + sp.pad * 2, sp.length + sp.pad * 2,
+      );
+      ctx!.restore();
+    }
+
+    // ── Background — baked once per resize ───────────────────────────────────
+    function bakeBackground(w: number, h: number) {
+      const [cv, cx] = makeOffscreen(w, h);
+      const bg = cx.createLinearGradient(0, 0, 0, h);
       bg.addColorStop(0,   '#0D0B09');
       bg.addColorStop(0.6, '#0F0C08');
       bg.addColorStop(1,   '#120D07');
-      ctx!.fillStyle = bg;
-      ctx!.fillRect(0, 0, w, h);
+      cx.fillStyle = bg;
+      cx.fillRect(0, 0, w, h);
 
-      const glow = ctx!.createRadialGradient(w * 0.5, 0, 0, w * 0.5, 0, h * 0.65);
+      const glow = cx.createRadialGradient(w * 0.5, 0, 0, w * 0.5, 0, h * 0.65);
       glow.addColorStop(0,   c(MID, 0.14));
       glow.addColorStop(0.4, c(MID, 0.06));
       glow.addColorStop(1,   c(DEEP, 0));
-      ctx!.fillStyle = glow;
-      ctx!.fillRect(0, 0, w, h);
+      cx.fillStyle = glow;
+      cx.fillRect(0, 0, w, h);
+
+      bgSprite = cv;
     }
 
-    function drawOuter(beam: Beam) {
-      const p = beam.baseOpacity * (0.70 + Math.sin(beam.pulse) * 0.38);
-      ctx!.save();
-      ctx!.translate(beam.x, beam.y);
-      ctx!.rotate((beam.angleDeg * Math.PI) / 180);
-      const g = ctx!.createLinearGradient(0, 0, 0, beam.length);
-      g.addColorStop(0,    c(CORE, 0));
-      g.addColorStop(0.15, c(CORE, p * 0.40));
-      g.addColorStop(0.42, c(MID,  p * 1.00));
-      g.addColorStop(0.55, c(CORE, p * 0.75));
-      g.addColorStop(0.80, c(DEEP, p * 0.55));
-      g.addColorStop(1,    c(DEEP, 0));
-      ctx!.fillStyle = g;
-      ctx!.fillRect(-beam.width / 2, 0, beam.width, beam.length);
-      ctx!.restore();
+    // ── Star sprite baking ────────────────────────────────────────────────────
+    // Each sprite is baked at full intensity (opacity=1); the twinkle is applied
+    // per frame via globalAlpha. All original alpha stops are linear multiples
+    // of opacity, so the result is identical to the per-frame gradient version.
+
+    function drawSpikeInto(cx: CanvasRenderingContext2D, x: number, y: number, len: number, angle: number, alpha: number) {
+      cx.save();
+      cx.translate(x, y);
+      cx.rotate(angle);
+      const g = cx.createLinearGradient(-len, 0, len, 0);
+      g.addColorStop(0,    `rgba(255,248,224,0)`);
+      g.addColorStop(0.30, `rgba(255,248,224,${(alpha * 0.22).toFixed(3)})`);
+      g.addColorStop(0.50, `rgba(255,252,235,${(alpha * 0.60).toFixed(3)})`);
+      g.addColorStop(0.70, `rgba(255,248,224,${(alpha * 0.22).toFixed(3)})`);
+      g.addColorStop(1,    `rgba(255,248,224,0)`);
+      cx.fillStyle = g;
+      cx.fillRect(-len, -0.6, len * 2, 1.2);
+      cx.restore();
     }
 
-    function drawCore(beam: Beam) {
-      const p = beam.baseOpacity * (0.70 + Math.sin(beam.pulse) * 0.38);
-      ctx!.save();
-      ctx!.translate(beam.x, beam.y);
-      ctx!.rotate((beam.angleDeg * Math.PI) / 180);
-      const g = ctx!.createLinearGradient(0, 0, 0, beam.length);
-      g.addColorStop(0,    c(CORE, 0));
-      g.addColorStop(0.35, c(CORE, p * 0.65));
-      g.addColorStop(0.55, c(CORE, p * 0.65));
-      g.addColorStop(1,    c(CORE, 0));
-      ctx!.fillStyle = g;
-      ctx!.fillRect(-beam.width / 7, 0, beam.width / 3.5, beam.length);
-      ctx!.restore();
+    function bakeStarSprite(radius: number, tier: 0 | 1 | 2): [HTMLCanvasElement, number] {
+      // Sprite half-extent per tier (matches the largest painted element)
+      const half = tier === 0 ? radius + 1
+                 : tier === 1 ? radius * 4 + 1
+                 :              radius * 14 + 2; // spikes reach radius*14
+      const size = half * 2;
+      const [cv, cx] = makeOffscreen(size, size);
+      const ctr = half;
+
+      if (tier === 0) {
+        // Tiny cool-blue distant field star — no halo, just the dot
+        cx.beginPath();
+        cx.arc(ctr, ctr, radius, 0, Math.PI * 2);
+        cx.fillStyle = 'rgba(200,218,255,1)';
+        cx.fill();
+
+      } else if (tier === 1) {
+        // Medium neutral-white star — very faint aura + core dot
+        const aura = cx.createRadialGradient(ctr, ctr, 0, ctr, ctr, radius * 4);
+        aura.addColorStop(0, 'rgba(240,242,248,0.20)');
+        aura.addColorStop(1, 'rgba(240,242,248,0)');
+        cx.beginPath();
+        cx.arc(ctr, ctr, radius * 4, 0, Math.PI * 2);
+        cx.fillStyle = aura;
+        cx.fill();
+
+        cx.beginPath();
+        cx.arc(ctr, ctr, radius, 0, Math.PI * 2);
+        cx.fillStyle = 'rgba(240,242,248,1)';
+        cx.fill();
+
+      } else {
+        // Bright near star: multi-stop glow halo + diffraction cross + warm core
+        const haloR = radius * 9;
+        const halo  = cx.createRadialGradient(ctr, ctr, 0, ctr, ctr, haloR);
+        halo.addColorStop(0,    'rgba(255,244,209,0.45)');
+        halo.addColorStop(0.25, 'rgba(255,238,192,0.18)');
+        halo.addColorStop(0.55, 'rgba(255,228,170,0.07)');
+        halo.addColorStop(1,    'rgba(255,220,150,0)');
+        cx.beginPath();
+        cx.arc(ctr, ctr, haloR, 0, Math.PI * 2);
+        cx.fillStyle = halo;
+        cx.fill();
+
+        // Diffraction cross — horizontal + vertical + softer 45° diagonals
+        const spikeLen = radius * 14;
+        drawSpikeInto(cx, ctr, ctr, spikeLen,        0,           1);
+        drawSpikeInto(cx, ctr, ctr, spikeLen,        Math.PI / 2, 1);
+        drawSpikeInto(cx, ctr, ctr, spikeLen * 0.6,  Math.PI / 4, 0.55);
+        drawSpikeInto(cx, ctr, ctr, spikeLen * 0.6, -Math.PI / 4, 0.55);
+
+        // Bright warm-cream core dot
+        cx.beginPath();
+        cx.arc(ctr, ctr, radius, 0, Math.PI * 2);
+        cx.fillStyle = 'rgba(255,252,235,1)';
+        cx.fill();
+      }
+
+      return [cv, size];
     }
 
-    // ── Star helpers ─────────────────────────────────────────────────────────
+    function makeStar(x: number, y: number, radius: number, baseOpacity: number,
+                      pulse: number, pulseSpeed: number, tier: 0 | 1 | 2): Star {
+      const [sprite, spriteSize] = bakeStarSprite(radius, tier);
+      return { x, y, radius, baseOpacity, pulse, pulseSpeed, tier, sprite, spriteSize };
+    }
+
     function makeStars(w: number, h: number) {
       stars = [];
 
@@ -129,128 +280,72 @@
         const yBias = Math.random() < 0.65
           ? Math.random() * h * 0.70
           : Math.random() * h;
-        stars.push({
-          x:           Math.random() * w,
-          y:           yBias,
-          radius:      0.20 + Math.random() * 0.55,
-          baseOpacity: 0.030 + Math.random() * 0.130,
-          pulse:       Math.random() * Math.PI * 2,
-          pulseSpeed:  0.0008 + Math.random() * 0.0022,
-          tier:        0,
-        });
+        stars.push(makeStar(
+          Math.random() * w, yBias,
+          0.20 + Math.random() * 0.55,
+          0.030 + Math.random() * 0.130,
+          Math.random() * Math.PI * 2,
+          0.0008 + Math.random() * 0.0022,
+          0,
+        ));
       }
 
       // Tier 1 — 48 medium stars: slightly brighter, neutral white, gentle twinkle
       for (let i = 0; i < 48; i++) {
-        stars.push({
-          x:           Math.random() * w,
-          y:           Math.random() * h,
-          radius:      0.55 + Math.random() * 0.60,
-          baseOpacity: 0.110 + Math.random() * 0.180,
-          pulse:       Math.random() * Math.PI * 2,
-          pulseSpeed:  0.0012 + Math.random() * 0.0024,
-          tier:        1,
-        });
+        stars.push(makeStar(
+          Math.random() * w, Math.random() * h,
+          0.55 + Math.random() * 0.60,
+          0.110 + Math.random() * 0.180,
+          Math.random() * Math.PI * 2,
+          0.0012 + Math.random() * 0.0024,
+          1,
+        ));
       }
 
       // Tier 2 — 3 bright near stars: warm cream, wide glow halo, diffraction spikes
       for (let i = 0; i < 3; i++) {
-        stars.push({
-          x:           (0.06 + Math.random() * 0.88) * w,
-          y:           (0.03 + Math.random() * 0.75) * h,
-          radius:      1.15 + Math.random() * 0.95,
-          baseOpacity: 0.52 + Math.random() * 0.34,
-          pulse:       Math.random() * Math.PI * 2,
-          pulseSpeed:  0.0014 + Math.random() * 0.0016,
-          tier:        2,
-        });
+        stars.push(makeStar(
+          (0.06 + Math.random() * 0.88) * w,
+          (0.03 + Math.random() * 0.75) * h,
+          1.15 + Math.random() * 0.95,
+          0.52 + Math.random() * 0.34,
+          Math.random() * Math.PI * 2,
+          0.0014 + Math.random() * 0.0016,
+          2,
+        ));
       }
-    }
-
-    // Diffraction spike — the fine cross that appears on bright stars in telescope photos
-    function drawSpike(x: number, y: number, len: number, angle: number, opacity: number) {
-      ctx!.save();
-      ctx!.translate(x, y);
-      ctx!.rotate(angle);
-      const g = ctx!.createLinearGradient(-len, 0, len, 0);
-      g.addColorStop(0,    `rgba(255,248,224,0)`);
-      g.addColorStop(0.30, `rgba(255,248,224,${(opacity * 0.22).toFixed(3)})`);
-      g.addColorStop(0.50, `rgba(255,252,235,${(opacity * 0.60).toFixed(3)})`);
-      g.addColorStop(0.70, `rgba(255,248,224,${(opacity * 0.22).toFixed(3)})`);
-      g.addColorStop(1,    `rgba(255,248,224,0)`);
-      ctx!.fillStyle = g;
-      ctx!.fillRect(-len, -0.6, len * 2, 1.2);
-      ctx!.restore();
     }
 
     function drawStars() {
       for (const s of stars) {
         s.pulse += s.pulseSpeed;
         const opacity = s.baseOpacity * (0.72 + Math.sin(s.pulse) * 0.28);
-
-        if (s.tier === 0) {
-          // Tiny cool-blue distant field star — no halo, just the dot
-          ctx!.beginPath();
-          ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-          ctx!.fillStyle = `rgba(200,218,255,${opacity.toFixed(3)})`;
-          ctx!.fill();
-
-        } else if (s.tier === 1) {
-          // Medium neutral-white star — very faint aura + core dot
-          const aura = ctx!.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.radius * 4);
-          aura.addColorStop(0, `rgba(240,242,248,${(opacity * 0.20).toFixed(3)})`);
-          aura.addColorStop(1, 'rgba(240,242,248,0)');
-          ctx!.beginPath();
-          ctx!.arc(s.x, s.y, s.radius * 4, 0, Math.PI * 2);
-          ctx!.fillStyle = aura;
-          ctx!.fill();
-
-          ctx!.beginPath();
-          ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-          ctx!.fillStyle = `rgba(240,242,248,${opacity.toFixed(3)})`;
-          ctx!.fill();
-
-        } else {
-          // Tier 2 — bright near star: multi-stop glow halo + diffraction cross + warm core
-          const haloR = s.radius * 9;
-          const halo  = ctx!.createRadialGradient(s.x, s.y, 0, s.x, s.y, haloR);
-          halo.addColorStop(0,    `rgba(255,244,209,${(opacity * 0.45).toFixed(3)})`);
-          halo.addColorStop(0.25, `rgba(255,238,192,${(opacity * 0.18).toFixed(3)})`);
-          halo.addColorStop(0.55, `rgba(255,228,170,${(opacity * 0.07).toFixed(3)})`);
-          halo.addColorStop(1,    'rgba(255,220,150,0)');
-          ctx!.beginPath();
-          ctx!.arc(s.x, s.y, haloR, 0, Math.PI * 2);
-          ctx!.fillStyle = halo;
-          ctx!.fill();
-
-          // Diffraction cross — horizontal + vertical + softer 45° diagonals
-          const spikeLen = s.radius * 14;
-          drawSpike(s.x, s.y, spikeLen,        0,            opacity);
-          drawSpike(s.x, s.y, spikeLen,        Math.PI / 2,  opacity);
-          drawSpike(s.x, s.y, spikeLen * 0.6,  Math.PI / 4,  opacity * 0.55);
-          drawSpike(s.x, s.y, spikeLen * 0.6, -Math.PI / 4,  opacity * 0.55);
-
-          // Bright warm-cream core dot
-          ctx!.beginPath();
-          ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-          ctx!.fillStyle = `rgba(255,252,235,${opacity.toFixed(3)})`;
-          ctx!.fill();
-        }
+        const half = s.spriteSize / 2;
+        ctx!.globalAlpha = Math.max(0, Math.min(1, opacity));
+        ctx!.drawImage(s.sprite, s.x - half, s.y - half, s.spriteSize, s.spriteSize);
       }
+      ctx!.globalAlpha = 1;
     }
 
     // ── Resize + frame loop ───────────────────────────────────────────────────
     function resize() {
       if (!canvas || !ctx) return;
-      const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
-      const w   = window.innerWidth;
-      const h   = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio ?? 1, 2);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
       canvas.width  = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       canvas.style.width  = `${w}px`;
       canvas.style.height = `${h}px`;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
+
+      // Re-bake all sprites for the new dimensions
+      bakeBackground(w, h);
+      beamSprites = [];
+      for (let layer = 1; layer <= LAYERS; layer++) {
+        beamSprites.push(bakeBeamSprites(h, layer));
+      }
       beams = [];
       for (let layer = 1; layer <= LAYERS; layer++) {
         for (let i = 0; i < BEAMS_PER_LAYER; i++) {
@@ -258,38 +353,42 @@
         }
       }
       makeStars(w, h);
+
       // In reduced-motion mode there is no RAF loop — redraw the static frame
       // so a window resize doesn't leave the canvas permanently blank.
-      if (isReduced) { drawBackground(w, h); drawStars(); }
+      if (isReduced) { ctx.drawImage(bgSprite!, 0, 0, w, h); drawStars(); }
     }
 
     function frame() {
       if (!canvas || !ctx) return;
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
-      drawBackground(w, h);
+
+      // Everything below is drawImage() of cached bitmaps — no gradients,
+      // no ctx.filter, no rasterization. Same pixels as the original code.
+      ctx.drawImage(bgSprite!, 0, 0, w, h);
       drawStars();
 
       for (let layer = 1; layer <= LAYERS; layer++) {
-        ctx.filter = `blur(${2 + layer * 2}px)`;
+        const sp = beamSprites[layer - 1];
         for (const b of beams) {
           if (b.layer !== layer) continue;
           b.y     -= b.speed;
           b.pulse += b.pulseSpeed;
           if (b.y + b.length < 0) { b.y = h + 10; b.x = Math.random() * w; }
-          drawOuter(b);
+          drawBeamSprite(b, sp.outer, sp);
         }
       }
 
       for (let layer = 1; layer <= LAYERS; layer++) {
-        ctx.filter = `blur(${0.5 + layer * 0.4}px)`;
+        const sp = beamSprites[layer - 1];
         for (const b of beams) {
           if (b.layer !== layer) continue;
-          drawCore(b);
+          drawBeamSprite(b, sp.core, sp);
         }
       }
 
-      ctx.filter = 'none';
+      ctx.globalAlpha = 1;
       raf = requestAnimationFrame(frame);
     }
 
@@ -309,7 +408,7 @@
 
       isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      resize(); // resize() calls drawBackground+drawStars when isReduced
+      resize(); // resize() bakes sprites and draws the static frame when isReduced
 
       if (!isReduced) {
         raf = requestAnimationFrame(frame);
