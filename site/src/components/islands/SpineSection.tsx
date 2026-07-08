@@ -62,7 +62,7 @@ const CARD: React.CSSProperties = {
 };
 
 // ── Card inner content ────────────────────────────────────────────────────────
-function CardInner({ ex }: { ex: Exhibit }) {
+function CardInner({ ex, mobile = false }: { ex: Exhibit; mobile?: boolean }) {
   return (
     <>
       <span style={{
@@ -77,7 +77,7 @@ function CardInner({ ex }: { ex: Exhibit }) {
 
       <span style={{
         fontFamily:    'var(--font-display)',
-        fontSize:      'var(--text-2xl)',
+        fontSize:      mobile ? 'clamp(2rem, 8vw, 3rem)' : 'var(--text-2xl)',
         fontWeight:    400,
         lineHeight:    'var(--leading-snug)',
         letterSpacing: 'var(--tracking-tight)',
@@ -97,8 +97,10 @@ function CardInner({ ex }: { ex: Exhibit }) {
       <dl style={{
         display:             'grid',
         gridTemplateColumns: 'auto 1fr',
-        gap:                 '0.5rem 1.5rem',
+        gap:                 mobile ? '0.75rem 2rem' : '0.5rem 1.5rem',
         marginTop:           'auto',
+        paddingTop:          mobile ? '0.75rem' : '0',
+        borderTop:           mobile ? '1px solid color-mix(in srgb, var(--gold) 10%, transparent)' : 'none',
       }}>
         <dt style={{
           fontFamily:    'var(--font-mono)',
@@ -112,8 +114,9 @@ function CardInner({ ex }: { ex: Exhibit }) {
         </dt>
         <dd style={{
           fontFamily: 'var(--font-mono)',
-          fontSize:   'var(--text-lg)',
+          fontSize:   mobile ? 'var(--text-xl)' : 'var(--text-lg)',
           color:      'var(--gold-bright)',
+          letterSpacing: mobile ? 'var(--tracking-tight)' : '0',
         }}>
           {ex.statA}
         </dd>
@@ -140,33 +143,47 @@ function CardInner({ ex }: { ex: Exhibit }) {
         fontFamily:    'var(--font-mono)',
         fontSize:      'var(--text-xs)',
         letterSpacing: 'var(--tracking-wider)',
-        color:         'var(--gold)',
+        color:         mobile ? 'var(--gold-bright)' : 'var(--gold)',
         textTransform: 'uppercase',
-        marginTop:     '1rem',
+        marginTop:     mobile ? '0.25rem' : '1rem',
+        display:       'flex',
+        alignItems:    'center',
+        gap:           '0.5rem',
       }}>
-        Read the case study →
+        View case study →
       </span>
     </>
   );
 }
 
-// ── Mobile exhibit — rises into view via useInView ────────────────────────────
-function MobileExhibit({ ex }: { ex: Exhibit }) {
+// ── Mobile exhibit — editorial open-card format ───────────────────────────────
+function MobileExhibit({ ex, index }: { ex: Exhibit; index: number }) {
   const ref     = useRef<HTMLDivElement>(null);
-  const inView  = useInView(ref, { once: true, margin: '-8% 0px' });
+  const inView  = useInView(ref, { once: true, margin: '-6% 0px' });
   const reduced = useReducedMotion();
 
   return (
     <div ref={ref}>
       <motion.a
         href={ex.href}
-        style={CARD}
-        initial={{ opacity: 0, y: 24 }}
-        animate={(reduced ?? false) || inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-        transition={{ duration: DUR.slow, ease: EASE_EXPO }}
-        whileHover={{ y: -2, transition: { duration: DUR.fast } }}
+        style={{
+          display:        'flex',
+          flexDirection:  'column',
+          gap:            '1.25rem',
+          padding:        'clamp(2rem, 6vw, 2.75rem) 0',
+          background:     'transparent',
+          borderTop:      '1px solid color-mix(in srgb, var(--gold) 22%, transparent)',
+          textDecoration: 'none',
+          color:          'var(--bone)',
+          position:       'relative',
+          // Subtle top gold accent line that is wider than the border
+        }}
+        initial={{ opacity: 0, y: 32 }}
+        animate={(reduced ?? false) || inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 32 }}
+        transition={{ duration: DUR.slow, ease: EASE_EXPO, delay: index * 0.12 }}
+        whileTap={{ opacity: 0.8, transition: { duration: 0.1 } }}
       >
-        <CardInner ex={ex} />
+        <CardInner ex={ex} mobile />
       </motion.a>
     </div>
   );
@@ -280,46 +297,57 @@ export default function SpineSection() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
-          Mobile (≤768px) — normal flow, hairline accent, rise reveals
+          Mobile (≤768px) — editorial open-card format.
+          Chapter heading fills more of the viewport; cards are open
+          (no background, no box) separated by gold hairline borders.
           CSS class .spine-mobile is display:none above 768px.
           ════════════════════════════════════════════════════════════════ */}
       <div className="spine-mobile">
+        {/* Chapter heading — dramatically larger on mobile */}
         <div style={{
           maxWidth:     'var(--max-w)',
           margin:       '0 auto',
           padding:      '0 var(--gutter)',
-          marginBottom: 'var(--space-12)',
+          marginBottom: 'var(--space-16)',
         }}>
-          <ChapterHead />
+          <p style={{
+            fontFamily:    'var(--font-mono)',
+            fontSize:      'var(--text-xs)',
+            letterSpacing: 'var(--tracking-widest)',
+            textTransform: 'uppercase',
+            color:         'color-mix(in srgb, var(--gold) 80%, transparent)',
+            marginBottom:  '1rem',
+          }}>
+            Part I
+          </p>
+          <h2 style={{
+            fontFamily:    'var(--font-display)',
+            fontSize:      'clamp(3.5rem, 13vw, 5.5rem)',
+            fontWeight:    300,
+            letterSpacing: 'var(--tracking-tight)',
+            color:         'var(--bone)',
+            lineHeight:    1.05,
+          }}>
+            Selected<br />Work
+          </h2>
         </div>
 
+        {/* Exhibit cards — open editorial format */}
         <div style={{
           maxWidth:      'var(--max-w)',
           margin:        '0 auto',
           padding:       '0 var(--gutter)',
           display:       'flex',
           flexDirection: 'column',
-          gap:           'var(--space-6)',
-          position:      'relative',
         }}>
-          {/* Hairline — mobile stand-in for the flowing path */}
-          <div
-            aria-hidden="true"
-            style={{
-              position:      'absolute',
-              left:          '50%',
-              top:           0,
-              bottom:        0,
-              width:         '1px',
-              transform:     'translateX(-50%)',
-              background:    'linear-gradient(to bottom, transparent, var(--gold) 15%, var(--gold) 85%, transparent)',
-              opacity:       0.25,
-              pointerEvents: 'none',
-            }}
-          />
-          {EXHIBITS.map(ex => (
-            <MobileExhibit key={ex.href} ex={ex} />
+          {EXHIBITS.map((ex, i) => (
+            <MobileExhibit key={ex.href} ex={ex} index={i} />
           ))}
+          {/* Closing rule */}
+          <div aria-hidden="true" style={{
+            height:     '1px',
+            background: 'color-mix(in srgb, var(--gold) 22%, transparent)',
+          }} />
         </div>
       </div>
     </>

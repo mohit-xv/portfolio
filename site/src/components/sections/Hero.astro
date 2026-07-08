@@ -136,6 +136,7 @@ import HeroReveal from '../islands/HeroReveal.tsx';
   @media (max-width: 640px) {
     .hero {
       padding-top: var(--space-24);
+      padding-bottom: var(--space-20);
       align-items: flex-start;
     }
     .hero__scroll-cue {
@@ -143,8 +144,24 @@ import HeroReveal from '../islands/HeroReveal.tsx';
     }
     .hero__cta {
       flex-direction: column;
-      align-items: flex-start;
-      gap: var(--space-5);
+      align-items: stretch; /* full-width touch targets on mobile */
+      gap: var(--space-4);
+      margin-top: var(--space-6);
+    }
+    /* Minimum 48px tap target height on CTAs */
+    .hero__cta :global(a),
+    .hero__cta :global(button) {
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* Left accent — thin gold bookmark line beside hero content */
+    .hero .container {
+      padding-left: calc(var(--gutter) + 1.5rem);
+      border-left: 2px solid color-mix(in srgb, var(--gold) 28%, transparent);
+      margin-left: var(--gutter);
+      padding-right: var(--gutter);
     }
   }
 </style>

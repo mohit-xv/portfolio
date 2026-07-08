@@ -78,6 +78,23 @@ const { name, shortName, level, year, href, badgeImage } = Astro.props;
     filter: saturate(1) brightness(1.05);
   }
 
+  /* Mobile — more padding, slightly smaller badges */
+  @media (max-width: 640px) {
+    .laurel {
+      padding: var(--space-6) var(--space-4);
+      gap: var(--space-3);
+    }
+    .laurel__badge img {
+      width: 64px;
+      height: 64px;
+      /* Full saturation on mobile — no hover state on touch, so show crisp */
+      filter: saturate(0.9) brightness(1);
+    }
+    .laurel__name {
+      font-size: var(--text-xs);
+    }
+  }
+
   .laurel__text {
     display: flex;
     flex-direction: column;

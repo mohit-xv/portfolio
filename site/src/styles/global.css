@@ -31,7 +31,11 @@ body {
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   overflow-x: hidden;
+  /* Prevent scroll-chain to address bar / parent on mobile — helps with
+     scroll-linked animations that could jank when overscroll fires */
+  overscroll-behavior-y: contain;
 }
 
 /* ── Base element defaults ── */

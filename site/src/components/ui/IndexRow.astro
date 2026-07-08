@@ -113,36 +113,41 @@ const isLive = status === 'LIVE';
     color: var(--gold-bright);
   }
 
-  /* Mobile: collapse to two-line layout */
+  /* Mobile: collapse to two-line layout with more vertical breathing room */
   @media (max-width: 640px) {
     .index-row {
       grid-template-columns: 1fr auto;
-      grid-template-rows: auto auto;
-      gap: var(--space-1) var(--space-4);
+      grid-template-rows: auto auto auto;
+      gap: var(--space-2) var(--space-4);
+      padding: var(--space-6) 0; /* more vertical padding than desktop */
+      min-height: 56px;          /* comfortable touch target */
     }
     .index-row__title {
       grid-column: 1;
       grid-row: 1;
-      font-size: var(--text-base);
+      font-size: var(--text-lg);  /* larger on mobile — more legible */
     }
     .index-row__status {
       grid-column: 2;
       grid-row: 1;
+      font-size: var(--text-xs);
     }
     .index-row__desc {
       grid-column: 1;
       grid-row: 2;
-      font-size: var(--text-xs);
+      font-size: var(--text-sm);
+      color: color-mix(in srgb, var(--bone) 55%, transparent);
     }
     .index-row__stack {
-      grid-column: 1 / -1;
+      grid-column: 1;
       grid-row: 3;
       font-size: var(--text-2xs);
     }
     .index-row__year {
       grid-column: 2;
       grid-row: 2;
-      font-size: var(--text-2xs);
+      font-size: var(--text-xs);
+      color: color-mix(in srgb, var(--gold) 70%, transparent);
     }
   }
 </style>

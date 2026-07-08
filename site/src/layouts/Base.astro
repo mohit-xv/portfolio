@@ -162,12 +162,16 @@ const pageTitle = title === 'Mohit Singh'
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     lenis = new Lenis({
-      duration: reduced ? 0 : 1.15,
+      // 0.9 instead of 1.15 — scroll completes faster so the FlowingPath spring
+      // has less displacement to chase, eliminating homepage choppiness.
+      duration: reduced ? 0 : 0.9,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: !reduced,
-      touchMultiplier: 2,
+      // 1.3 instead of 2 — halves the overshoot on mobile touch, preventing the
+      // "launched" feeling when scroll-linked animations are in play.
+      touchMultiplier: 1.3,
     });
 
     function tick(time: number) {
