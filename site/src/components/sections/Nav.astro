@@ -46,11 +46,19 @@ const currentPath = Astro.url.pathname;
     position: sticky;
     top: 0;
     z-index: 100;
-    /* Subtle backdrop — lets grain stay visible through */
-    background: color-mix(in srgb, var(--ink) 85%, transparent);
+    /* Transparent at top — becomes opaque after scrolling past hero */
+    background: color-mix(in srgb, var(--ink) 55%, transparent);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-bottom: 1px solid color-mix(in srgb, var(--gold) 8%, transparent);
+    border-bottom: 1px solid transparent;
+    transition:
+      background-color 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color     0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-nav.is-scrolled {
+    background: color-mix(in srgb, var(--ink) 85%, transparent);
+    border-color: color-mix(in srgb, var(--gold) 8%, transparent);
   }
 
   .site-nav__inner {
@@ -116,3 +124,23 @@ const currentPath = Astro.url.pathname;
     }
   }
 </style>
+
+<script>
+  /**
+   * Activate .is-scrolled on the nav after 60px scroll.
+   * Re-binds on Astro View Transition navigation.
+   */
+  let _navHandler: (() => void) | null = null;
+
+  function initNavScroll() {
+    if (_navHandler) window.removeEventListener('scroll', _navHandler);
+    const nav = document.querySelector('.site-nav');
+    if (!nav) return;
+    _navHandler = () => nav.classList.toggle('is-scrolled', window.scrollY > 60);
+    window.addEventListener('scroll', _navHandler, { passive: true });
+    _navHandler(); // sync on init
+  }
+
+  initNavScroll();
+  document.addEventListener('astro:page-load', initNavScroll);
+</script>

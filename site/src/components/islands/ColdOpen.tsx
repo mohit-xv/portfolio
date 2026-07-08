@@ -122,7 +122,7 @@ export default function ColdOpen() {
               }}
             >
               not{' '}
-              <em style={{ fontStyle: 'italic', fontWeight: 400, color: 'var(--gold-bright)' }}>
+              <em style={{ fontStyle: 'italic', fontWeight: 400, color: 'var(--gold-bright)', textShadow: '0 0 28px rgba(227, 194, 125, 0.32), 0 0 60px rgba(192, 160, 98, 0.14)' }}>
                 waste
               </em>
               .

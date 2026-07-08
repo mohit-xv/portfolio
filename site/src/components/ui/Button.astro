@@ -48,16 +48,37 @@ const externalAttrs = external
       border-color var(--dur-fast) var(--ease-expo);
   }
 
-  /* ghost — subtle border */
+  /* ghost — subtle border with left→right fill sweep on hover */
   .btn--ghost {
     color: var(--bone);
     border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
     padding: var(--space-3) var(--space-6);
     border-radius: var(--radius-sm);
+    position: relative;
+    overflow: hidden;
+    /* Text and arrow must sit above the ::before sweep */
+    isolation: isolate;
   }
+
+  /* The sweep fill — scales from 0 to full width on hover */
+  .btn--ghost::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--gold) 10%, transparent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+    border-radius: inherit;
+    z-index: -1;
+  }
+
   .btn--ghost:hover {
     color: var(--gold-bright);
     border-color: var(--gold);
+  }
+  .btn--ghost:hover::before {
+    transform: scaleX(1);
   }
   .btn--ghost:focus-visible {
     box-shadow: var(--focus-ring);

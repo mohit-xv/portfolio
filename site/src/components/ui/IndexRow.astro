@@ -38,11 +38,29 @@ const isLive = status === 'LIVE';
     border-bottom: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
     text-decoration: none;
     color: var(--bone);
+    position: relative;
     transition: background-color var(--dur-fast) var(--ease-expo);
   }
   .index-row:first-child {
     border-top: 1px solid color-mix(in srgb, var(--gold) 12%, transparent);
   }
+
+  /* Gold underline that draws left → right on hover */
+  .index-row::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--gold);
+    transition: width 0.52s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .index-row:hover::after {
+    width: 100%;
+  }
+
   .index-row:hover {
     background-color: color-mix(in srgb, var(--gold) 4%, transparent);
   }

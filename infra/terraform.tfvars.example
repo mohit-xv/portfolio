@@ -1,0 +1,31 @@
+# Copy this file to terraform.tfvars and fill in the values.
+# terraform.tfvars is gitignored — never commit the real file.
+#
+# How to use:
+#   cp terraform.tfvars.example terraform.tfvars
+#   # edit terraform.tfvars
+#   terraform init
+#   terraform apply
+
+# ── Required ──────────────────────────────────────────────────────────────────
+
+# Cloudflare Turnstile — dash.cloudflare.com → Turnstile → Add Widget
+# Choose "Invisible" widget type; copy the Secret Key here.
+turnstile_secret_key = "YOUR_TURNSTILE_SECRET_KEY"
+
+# ── Optional but recommended ──────────────────────────────────────────────────
+
+# Telegram — create a bot via @BotFather, then message the bot once to get the chat ID.
+# Get chat ID: https://api.telegram.org/bot<TOKEN>/getUpdates
+telegram_bot_token = "YOUR_BOT_TOKEN"
+telegram_chat_id   = "YOUR_CHAT_ID"
+
+# GitHub personal access token — avoids the 60 req/hr unauthenticated rate limit.
+# Create at: github.com/settings/tokens → Fine-grained → public_repos read-only
+github_token = "YOUR_GITHUB_TOKEN"
+
+# ── Set after first apply ─────────────────────────────────────────────────────
+
+# After the first terraform apply, copy the CloudFront domain from outputs and
+# set it here, then re-apply to lock down CORS to your actual domain.
+# allow_origin = "https://xxxxxxxx.cloudfront.net"

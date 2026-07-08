@@ -1,0 +1,87 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Manual trigger from GitHub UI
+
+# OIDC requires these permissions — no stored AWS keys
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Build & deploy to S3 + CloudFront
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: site
+        run: pnpm install --frozen-lockfile
+
+      - name: Build site
+        working-directory: site
+        run: pnpm build
+        env:
+          # Injected at build time so the contact form and analytics point at the
+          # correct API Gateway URL. Set via: Settings → Environments → production → Variables
+          PUBLIC_API_URL: ${{ vars.API_URL }}
+          # Turnstile site key (public) — enables the bot-protection widget on /contact
+          PUBLIC_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+
+      - name: Configure AWS credentials (OIDC — no stored keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}
+          aws-region: ap-south-1
+
+      # ── S3 sync in three passes to set correct Cache-Control per file type ──
+
+      - name: Sync hashed assets (immutable, 1 year)
+        run: |
+          aws s3 sync site/dist/_astro/ s3://${{ vars.S3_BUCKET }}/_astro/ \
+            --cache-control "public, max-age=31536000, immutable"
+
+      - name: Sync HTML pages (short cache, 5 min)
+        run: |
+          aws s3 sync site/dist/ s3://${{ vars.S3_BUCKET }}/ \
+            --delete \
+            --cache-control "public, max-age=300" \
+            --exclude "_astro/*" \
+            --exclude "*.xml" \
+            --exclude "*.json" \
+            --exclude "*.txt"
+
+      - name: Sync metadata files (sitemap, manifest, robots)
+        run: |
+          aws s3 sync site/dist/ s3://${{ vars.S3_BUCKET }}/ \
+            --cache-control "public, max-age=3600" \
+            --include "*.xml" \
+            --include "*.json" \
+            --include "*.txt" \
+            --exclude "_astro/*"
+
+      # ── CloudFront invalidation — clears edge caches for HTML + metadata ──
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CF_DISTRIBUTION_ID }} \
+            --paths "/*.html" "/*/index.html" "/*.xml" "/*.json"

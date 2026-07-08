@@ -30,6 +30,12 @@ const buildDate = new Date().toLocaleDateString('en-GB', {
           target="_blank"
           rel="noopener noreferrer"
         >GitHub ↗</a>
+        <a
+          href="https://www.linkedin.com/in/mohit-xv"
+          class="footer-link footer-link--external"
+          target="_blank"
+          rel="noopener noreferrer"
+        >LinkedIn ↗</a>
       </nav>
 
       <!-- Live signals -->
@@ -109,12 +115,18 @@ const buildDate = new Date().toLocaleDateString('en-GB', {
     gap: var(--space-2);
   }
 
+  @keyframes signal-pulse {
+    0%, 100% { opacity: 1;   transform: scale(1); }
+    50%       { opacity: 0.3; transform: scale(0.45); }
+  }
+
   .footer-signal__dot {
     width: 5px;
     height: 5px;
     border-radius: 50%;
     background: var(--gold);
     flex-shrink: 0;
+    animation: signal-pulse 2.6s ease-in-out infinite;
   }
 
   .footer-signal--cost {

@@ -4,6 +4,7 @@ import Nav from '../components/sections/Nav.astro';
 import Eyebrow from '../components/ui/Eyebrow.astro';
 import Button from '../components/ui/Button.astro';
 import Footer from '../components/sections/Footer.astro';
+import ContactForm from '../components/islands/ContactForm.tsx';
 ---
 
 <Base
@@ -30,86 +31,9 @@ import Footer from '../components/sections/Footer.astro';
       <div class="container">
         <div class="contact-layout">
 
-          <!-- Left: form -->
+          <!-- Left: form (React island handles submission + success/error state) -->
           <div class="contact-form-wrap">
-            <!-- Phase 5: Lambda → SES + Telegram backend wired here.
-                 Form currently sends to a placeholder action. -->
-            <form
-              class="contact-form"
-              method="POST"
-              action="/api/contact"
-              novalidate
-              id="contact-form"
-            >
-              <!-- Honeypot — hidden from real users, bots fill it -->
-              <input
-                type="text"
-                name="_hp"
-                tabindex="-1"
-                autocomplete="off"
-                aria-hidden="true"
-                class="contact-form__honeypot"
-              />
-
-              <div class="form-field">
-                <label for="name" class="form-label">Name</label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  required
-                  autocomplete="name"
-                  class="form-input"
-                  placeholder="Mohit Singh"
-                />
-              </div>
-
-              <div class="form-field">
-                <label for="email" class="form-label">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  required
-                  autocomplete="email"
-                  class="form-input"
-                  placeholder="you@company.com"
-                />
-              </div>
-
-              <div class="form-field">
-                <label for="context" class="form-label">Context</label>
-                <select id="context" name="context" class="form-select" required>
-                  <option value="" disabled selected>What's this about?</option>
-                  <option value="role">A role or internship</option>
-                  <option value="aws-bill">An AWS bill that looks wrong</option>
-                  <option value="project">A project or collaboration</option>
-                  <option value="other">Something else</option>
-                </select>
-              </div>
-
-              <div class="form-field">
-                <label for="message" class="form-label">Message</label>
-                <textarea
-                  id="message"
-                  name="message"
-                  required
-                  rows="5"
-                  class="form-textarea"
-                  placeholder="Brief context — what you're working on, what you need."
-                ></textarea>
-              </div>
-
-              <!-- Cloudflare Turnstile — Phase 5 -->
-              <div class="form-turnstile" id="turnstile-container">
-                <!-- cf-turnstile widget injected here at Phase 5 -->
-              </div>
-
-              <button type="submit" class="form-submit">
-                Send message
-                <span aria-hidden="true" class="form-submit__arrow">→</span>
-              </button>
-            </form>
+            <ContactForm client:load />
           </div>
 
           <!-- Right: contact details -->
@@ -137,6 +61,12 @@ import Footer from '../components/sections/Footer.astro';
                 variant="text"
                 external
               >GitHub</Button>
+
+              <Button
+                href="https://www.linkedin.com/in/mohit-xv"
+                variant="text"
+                external
+              >LinkedIn</Button>
 
               <Button
                 href="https://www.credly.com/users/mohit-singh"

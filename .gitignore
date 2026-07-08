@@ -2,9 +2,26 @@ node_modules/
 dist/
 .astro/
 .env
-.env.production
+.env.*
+!.env.example
 .DS_Store
 .idea/
 mohit-xv-master-plan_2.md
 some_images/
 graphify-out/
+
+# ── Terraform ─────────────────────────────────────────────────────────────────
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/terraform.tfvars
+
+# ── Lambda build artefacts ────────────────────────────────────────────────────
+dist/*.zip
+!dist/.gitkeep
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.venv/

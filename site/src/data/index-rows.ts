@@ -16,11 +16,20 @@ export interface IndexRow {
 export const indexRows: IndexRow[] = [
   {
     title: 'SHROOM',
-    description: 'hallucination detector',
+    description: 'AI hallucination detector',
     stack: 'PyTorch · HuggingFace',
     year: 'MMXXV',
     status: '↗',
-    href: '#', // TODO: supply GitHub / demo link
+    href: 'https://github.com/mohit-xv/AI-hallucination_Detector',
+    external: true,
+  },
+  {
+    title: 'Feedback Analyser',
+    description: 'customer sentiment pipeline',
+    stack: 'Python · AWS',
+    year: 'MMXXVI',
+    status: '↗',
+    href: 'https://github.com/mohit-xv/customer_feedback_analyser',
     external: true,
   },
   {

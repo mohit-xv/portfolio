@@ -143,6 +143,31 @@ button {
   }
 }
 
+/* ── SpineSection — desktop / mobile layout toggle ──────────────────────────
+   These classes are applied inside the SpineSection React island.
+   Scoped CSS cannot pierce into islands, so they live here as globals.
+   ─────────────────────────────────────────────────────────────────────── */
+.spine-desktop { display: block; }
+.spine-mobile  { display: none;  }
+
+@media (max-width: 768px) {
+  .spine-desktop { display: none;  }
+  .spine-mobile  { display: block; }
+}
+
+/* ── Scroll progress bar — fills left-to-right as the user scrolls ── */
+.scroll-progress {
+  position:       fixed;
+  top:            0;
+  left:           0;
+  width:          var(--scroll-pct, 0%);
+  height:         1px;
+  background:     linear-gradient(to right, var(--gold), var(--gold-bright));
+  z-index:        500;
+  pointer-events: none;
+  transform-origin: left;
+}
+
 /* ── Scrollbar (optional — matches brand) ── */
 ::-webkit-scrollbar {
   width: 6px;

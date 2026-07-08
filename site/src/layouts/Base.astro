@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import CosmicBeams from '../components/islands/CosmicBeams.astro';
+import CursorRing  from '../components/islands/CursorRing.tsx';
 import { ClientRouter } from 'astro:transitions';
 
 interface Props {
@@ -91,12 +92,25 @@ const pageTitle = title === 'Mohit Singh'
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
+  <!-- Cloudflare Turnstile — bot protection for the contact form.
+       Loaded on every page so it's ready when the user navigates to /contact
+       via a View Transition. Skipped in local dev (no env var set). -->
+  {import.meta.env.PUBLIC_TURNSTILE_SITE_KEY && (
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  )}
+
   <!-- Astro View Transitions — page-to-page morphs -->
   <ClientRouter />
 </head>
 <body>
   <!-- Viewport-fixed animated canvas background — persists across all scroll positions -->
   <CosmicBeams />
+
+  <!-- Scroll progress bar — 1px gold line at viewport top, fills on scroll -->
+  <div class="scroll-progress" aria-hidden="true"></div>
+
+  <!-- Custom cursor ring — fine-pointer (mouse) devices only -->
+  <CursorRing client:load />
 
   <!-- Grain overlay — decorative, pointer-events none -->
   <div class="grain-layer" aria-hidden="true"></div>
@@ -167,5 +181,46 @@ const pageTitle = title === 'Mohit Singh'
 
   // Re-init after View Transitions navigation so smooth scroll works on each page
   document.addEventListener('astro:page-load', initLenis);
+</script>
+
+<script>
+  /**
+   * Scroll progress bar — sets --scroll-pct on <html> so the CSS bar grows.
+   * Runs on every page; re-syncs on Astro View Transition navigation.
+   */
+  function initScrollProgress() {
+    const update = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+      document.documentElement.style.setProperty('--scroll-pct', `${pct.toFixed(2)}%`);
+    };
+    window.addEventListener('scroll', update, { passive: true });
+    update();
+  }
+  initScrollProgress();
+  document.addEventListener('astro:page-load', initScrollProgress);
+</script>
+
+<script>
+  /**
+   * Cookieless analytics — fire-and-forget POST to the analytics Lambda.
+   * No cookie, no fingerprinting — just page + referrer.
+   * Skipped silently if PUBLIC_API_URL is not set (local dev / pre-deploy).
+   */
+  const apiUrl = import.meta.env.PUBLIC_API_URL;
+
+  function trackPageView() {
+    if (!apiUrl) return;
+    navigator.sendBeacon(
+      `${apiUrl}/api/analytics`,
+      JSON.stringify({
+        page:     window.location.pathname,
+        referrer: document.referrer,
+      }),
+    );
+  }
+
+  trackPageView();
+  document.addEventListener('astro:page-load', trackPageView);
 </script>
 </html>
