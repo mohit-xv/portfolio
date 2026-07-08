@@ -96,7 +96,7 @@ const pageTitle = title === 'Mohit Singh'
        Loaded on every page so it's ready when the user navigates to /contact
        via a View Transition. Skipped in local dev (no env var set). -->
   {import.meta.env.PUBLIC_TURNSTILE_SITE_KEY && (
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   )}
 
   <!-- Astro View Transitions — page-to-page morphs -->
