@@ -67,7 +67,7 @@ export default function FlowingPath() {
   const rawLen    = useTransform(scrollYProgress, [SCROLL_START, SCROLL_END], [0, 1]);
   // Physical spring — the ribbon trails rapid scroll then catches up,
   // like a comet following its orbital path.
-  const springLen = useSpring(rawLen, { stiffness: 42, damping: 17, restDelta: 0.001 });
+  const springLen = useSpring(rawLen, { stiffness: 65, damping: 24, restDelta: 0.001 });
   const pathLen   = (reduced ?? false) ? 1 : springLen;
 
   return (
@@ -81,10 +81,13 @@ export default function FlowingPath() {
         width:         '100vw',
         height:        '100vh',
         pointerEvents: 'none',
-        // z-index 0 — ribbon lives in the background layer, behind all content.
         zIndex:        0,
         overflow:      'visible',
         mixBlendMode:  'screen',
+        // Force GPU compositor layer — prevents mix-blend-mode from blocking
+        // layer promotion and eliminates per-frame software rasterisation cost.
+        willChange:    'transform',
+        transform:     'translateZ(0)',
       }}
     >
       {/* Outer bloom — wide diffuse ambience */}
