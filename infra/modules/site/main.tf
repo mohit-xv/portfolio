@@ -30,6 +30,30 @@ resource "aws_cloudfront_origin_access_control" "site" {
   signing_protocol                  = "sigv4"
 }
 
+# ── CloudFront Function — rewrite bare paths to /index.html ──────────────────
+# Astro outputs contact/ as contact/index.html. Without this, CloudFront hits S3
+# looking for a key named "contact" which doesn't exist → 403 AccessDenied.
+
+resource "aws_cloudfront_function" "url_rewrite" {
+  name    = "${var.project}-url-rewrite"
+  runtime = "cloudfront-js-2.0"
+  comment = "Rewrite bare paths to index.html for Astro static routing"
+  publish = true
+
+  code = <<-EOT
+    function handler(event) {
+      var request = event.request;
+      var uri = request.uri;
+      if (uri.endsWith('/')) {
+        request.uri = uri + 'index.html';
+      } else if (!uri.includes('.')) {
+        request.uri = uri + '/index.html';
+      }
+      return request;
+    }
+  EOT
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -59,6 +83,11 @@ resource "aws_cloudfront_distribution" "site" {
     min_ttl     = 0
     default_ttl = 86400    # 1 day
     max_ttl     = 31536000 # 1 year
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.url_rewrite.arn
+    }
   }
 
   # HTML pages — short cache so a re-deploy is reflected quickly
@@ -80,7 +109,14 @@ resource "aws_cloudfront_distribution" "site" {
     max_ttl     = 3600
   }
 
-  # Astro 404 page
+  # S3 with OAC returns 403 (not 404) for missing objects — map both to Astro's 404 page
+  custom_error_response {
+    error_code            = 403
+    response_code         = 404
+    response_page_path    = "/404/index.html"
+    error_caching_min_ttl = 10
+  }
+
   custom_error_response {
     error_code            = 404
     response_code         = 404
