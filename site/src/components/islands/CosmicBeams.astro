@@ -4,15 +4,9 @@
  * Pure Astro component: renders a <canvas> and runs a <script> client-side.
  * No React needed — canvas animation has no state or re-renders.
  *
- * Performance strategy (visuals unchanged):
- *   - Desktop: throttled to ~30fps — beam movement is slow ambient motion,
- *     imperceptible at 30fps. dt-compensation keeps visual speed identical.
- *   - During scroll: drops to ~2fps (500ms intervals). Beams move <0.1px
- *     visible per interval so they appear alive but the main thread is free
- *     for scroll compositing. Full animation resumes 200ms after scroll stops.
- *   - Mobile (≤768px): static frame drawn once, no RAF loop.
- *     Native iOS/Android scroll is already smooth; a competing animation
- *     loop on mobile is the source of roughness, not the visuals.
+ * The boot() function is called on first load AND on every astro:page-load
+ * event so the animation survives Astro View Transition page swaps and HMR
+ * hot-reloads without manual refreshing.
  */
 ---
 
@@ -25,6 +19,9 @@
 <script>
   (function () {
     // ── Colour constants — mapped to site design tokens ──
+    // --gold        #C0A062  →  DEEP  [192, 160,  98]
+    // --gold-bright #E3C27D  →  MID   [227, 194, 125]
+    //                        →  CORE  [255, 244, 209]  warm cream
     const CORE: [number,number,number] = [255, 244, 209];
     const MID:  [number,number,number] = [227, 194, 125];
     const DEEP: [number,number,number] = [192, 160,  98];
@@ -46,21 +43,18 @@
       x: number; y: number;
       radius: number; baseOpacity: number;
       pulse: number; pulseSpeed: number;
-      tier: 0 | 1 | 2;
+      tier: 0 | 1 | 2;  // 0=distant cool, 1=medium neutral, 2=bright warm
     }
 
-    // ── Module-level mutable state ────────────────────────────────────────────
+    // ── Module-level mutable state — reassigned by every boot() call ──────────
     let canvas: HTMLCanvasElement | null = null;
     let ctx: CanvasRenderingContext2D | null = null;
-    let beams: Beam[]  = [];
-    let stars: Star[]  = [];
-    let raf            = 0;
-    let isReduced      = false;
-    let lastFrameTime  = 0;
-    let isScrolling    = false;
-    let scrollTimer    = 0;
+    let beams: Beam[] = [];
+    let stars: Star[] = [];
+    let raf       = 0;
+    let isReduced = false;
 
-    // ── Beam helpers ──────────────────────────────────────────────────────────
+    // ── Beam helpers ─────────────────────────────────────────────────────────
     function makeBeam(w: number, h: number, layer: number): Beam {
       const t = layer / LAYERS;
       return {
@@ -125,45 +119,55 @@
       ctx!.restore();
     }
 
-    // ── Star helpers ──────────────────────────────────────────────────────────
+    // ── Star helpers ─────────────────────────────────────────────────────────
     function makeStars(w: number, h: number) {
       stars = [];
+
+      // Tier 0 — 130 distant field stars: tiny, very faint, cool blue-white
+      // Biased slightly toward upper 65% of screen for a natural sky feel
       for (let i = 0; i < 130; i++) {
         const yBias = Math.random() < 0.65
           ? Math.random() * h * 0.70
           : Math.random() * h;
         stars.push({
-          x: Math.random() * w, y: yBias,
-          radius: 0.20 + Math.random() * 0.55,
+          x:           Math.random() * w,
+          y:           yBias,
+          radius:      0.20 + Math.random() * 0.55,
           baseOpacity: 0.030 + Math.random() * 0.130,
-          pulse: Math.random() * Math.PI * 2,
-          pulseSpeed: 0.0008 + Math.random() * 0.0022,
-          tier: 0,
+          pulse:       Math.random() * Math.PI * 2,
+          pulseSpeed:  0.0008 + Math.random() * 0.0022,
+          tier:        0,
         });
       }
+
+      // Tier 1 — 48 medium stars: slightly brighter, neutral white, gentle twinkle
       for (let i = 0; i < 48; i++) {
         stars.push({
-          x: Math.random() * w, y: Math.random() * h,
-          radius: 0.55 + Math.random() * 0.60,
+          x:           Math.random() * w,
+          y:           Math.random() * h,
+          radius:      0.55 + Math.random() * 0.60,
           baseOpacity: 0.110 + Math.random() * 0.180,
-          pulse: Math.random() * Math.PI * 2,
-          pulseSpeed: 0.0012 + Math.random() * 0.0024,
-          tier: 1,
+          pulse:       Math.random() * Math.PI * 2,
+          pulseSpeed:  0.0012 + Math.random() * 0.0024,
+          tier:        1,
         });
       }
+
+      // Tier 2 — 3 bright near stars: warm cream, wide glow halo, diffraction spikes
       for (let i = 0; i < 3; i++) {
         stars.push({
-          x: (0.06 + Math.random() * 0.88) * w,
-          y: (0.03 + Math.random() * 0.75) * h,
-          radius: 1.15 + Math.random() * 0.95,
+          x:           (0.06 + Math.random() * 0.88) * w,
+          y:           (0.03 + Math.random() * 0.75) * h,
+          radius:      1.15 + Math.random() * 0.95,
           baseOpacity: 0.52 + Math.random() * 0.34,
-          pulse: Math.random() * Math.PI * 2,
-          pulseSpeed: 0.0014 + Math.random() * 0.0016,
-          tier: 2,
+          pulse:       Math.random() * Math.PI * 2,
+          pulseSpeed:  0.0014 + Math.random() * 0.0016,
+          tier:        2,
         });
       }
     }
 
+    // Diffraction spike — the fine cross that appears on bright stars in telescope photos
     function drawSpike(x: number, y: number, len: number, angle: number, opacity: number) {
       ctx!.save();
       ctx!.translate(x, y);
@@ -179,18 +183,20 @@
       ctx!.restore();
     }
 
-    function drawStars(dt: number = 1) {
+    function drawStars() {
       for (const s of stars) {
-        s.pulse += s.pulseSpeed * dt;
+        s.pulse += s.pulseSpeed;
         const opacity = s.baseOpacity * (0.72 + Math.sin(s.pulse) * 0.28);
 
         if (s.tier === 0) {
+          // Tiny cool-blue distant field star — no halo, just the dot
           ctx!.beginPath();
           ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
           ctx!.fillStyle = `rgba(200,218,255,${opacity.toFixed(3)})`;
           ctx!.fill();
 
         } else if (s.tier === 1) {
+          // Medium neutral-white star — very faint aura + core dot
           const aura = ctx!.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.radius * 4);
           aura.addColorStop(0, `rgba(240,242,248,${(opacity * 0.20).toFixed(3)})`);
           aura.addColorStop(1, 'rgba(240,242,248,0)');
@@ -198,12 +204,14 @@
           ctx!.arc(s.x, s.y, s.radius * 4, 0, Math.PI * 2);
           ctx!.fillStyle = aura;
           ctx!.fill();
+
           ctx!.beginPath();
           ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
           ctx!.fillStyle = `rgba(240,242,248,${opacity.toFixed(3)})`;
           ctx!.fill();
 
         } else {
+          // Tier 2 — bright near star: multi-stop glow halo + diffraction cross + warm core
           const haloR = s.radius * 9;
           const halo  = ctx!.createRadialGradient(s.x, s.y, 0, s.x, s.y, haloR);
           halo.addColorStop(0,    `rgba(255,244,209,${(opacity * 0.45).toFixed(3)})`);
@@ -214,11 +222,15 @@
           ctx!.arc(s.x, s.y, haloR, 0, Math.PI * 2);
           ctx!.fillStyle = halo;
           ctx!.fill();
+
+          // Diffraction cross — horizontal + vertical + softer 45° diagonals
           const spikeLen = s.radius * 14;
-          drawSpike(s.x, s.y, spikeLen,        0,           opacity);
-          drawSpike(s.x, s.y, spikeLen,        Math.PI / 2, opacity);
-          drawSpike(s.x, s.y, spikeLen * 0.6,  Math.PI / 4, opacity * 0.55);
-          drawSpike(s.x, s.y, spikeLen * 0.6, -Math.PI / 4, opacity * 0.55);
+          drawSpike(s.x, s.y, spikeLen,        0,            opacity);
+          drawSpike(s.x, s.y, spikeLen,        Math.PI / 2,  opacity);
+          drawSpike(s.x, s.y, spikeLen * 0.6,  Math.PI / 4,  opacity * 0.55);
+          drawSpike(s.x, s.y, spikeLen * 0.6, -Math.PI / 4,  opacity * 0.55);
+
+          // Bright warm-cream core dot
           ctx!.beginPath();
           ctx!.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
           ctx!.fillStyle = `rgba(255,252,235,${opacity.toFixed(3)})`;
@@ -227,25 +239,7 @@
       }
     }
 
-    // ── Static frame — reduced-motion and mobile ──────────────────────────────
-    function drawStatic() {
-      if (!canvas || !ctx) return;
-      const w = canvas.offsetWidth;
-      const h = canvas.offsetHeight;
-      drawBackground(w, h);
-      for (let layer = 1; layer <= LAYERS; layer++) {
-        ctx.filter = `blur(${2 + layer * 2}px)`;
-        for (const b of beams) { if (b.layer !== layer) continue; drawOuter(b); }
-      }
-      for (let layer = 1; layer <= LAYERS; layer++) {
-        ctx.filter = `blur(${0.5 + layer * 0.4}px)`;
-        for (const b of beams) { if (b.layer !== layer) continue; drawCore(b); }
-      }
-      ctx.filter = 'none';
-      drawStars(0);
-    }
-
-    // ── Resize ────────────────────────────────────────────────────────────────
+    // ── Resize + frame loop ───────────────────────────────────────────────────
     function resize() {
       if (!canvas || !ctx) return;
       const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
@@ -264,37 +258,24 @@
         }
       }
       makeStars(w, h);
-      if (isReduced || w <= 768) drawStatic();
+      // In reduced-motion mode there is no RAF loop — redraw the static frame
+      // so a window resize doesn't leave the canvas permanently blank.
+      if (isReduced) { drawBackground(w, h); drawStars(); }
     }
 
-    // ── Animated frame loop (desktop only) ───────────────────────────────────
-    function frame(t: number) {
+    function frame() {
       if (!canvas || !ctx) return;
-
-      // During active scroll: drop to ~2fps so the main thread stays free
-      // for scroll compositing. Beams move <0.1px per 500ms — imperceptible.
-      // Full 30fps resumes 200ms after scroll stops.
-      const minInterval = isScrolling ? 500 : 33;
-      const elapsed = lastFrameTime > 0 ? t - lastFrameTime : 16.67;
-      if (elapsed < minInterval) {
-        raf = requestAnimationFrame(frame);
-        return;
-      }
-      // dt keeps visual speed the same regardless of actual fps
-      const dt = Math.min(elapsed / 16.67, 6);
-      lastFrameTime = t;
-
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
       drawBackground(w, h);
-      drawStars(dt);
+      drawStars();
 
       for (let layer = 1; layer <= LAYERS; layer++) {
         ctx.filter = `blur(${2 + layer * 2}px)`;
         for (const b of beams) {
           if (b.layer !== layer) continue;
-          b.y     -= b.speed * dt;
-          b.pulse += b.pulseSpeed * dt;
+          b.y     -= b.speed;
+          b.pulse += b.pulseSpeed;
           if (b.y + b.length < 0) { b.y = h + 10; b.x = Math.random() * w; }
           drawOuter(b);
         }
@@ -312,13 +293,14 @@
       raf = requestAnimationFrame(frame);
     }
 
-    // ── Boot ─────────────────────────────────────────────────────────────────
+    // ── boot — safe to call multiple times (cancels previous loop first) ─────
     function boot() {
+      // Cancel any running loop and remove the resize handler. We use
+      // window.__cosmicResizeFn so that after an HMR module re-evaluation
+      // the previous closure's resize reference can still be removed.
       cancelAnimationFrame(raf);
       const prevResize = (window as any).__cosmicResizeFn;
       if (prevResize) window.removeEventListener('resize', prevResize);
-      const prevScroll = (window as any).__cosmicScrollFn;
-      if (prevScroll) window.removeEventListener('scroll', prevScroll);
 
       canvas = document.getElementById('cosmic-beams') as HTMLCanvasElement | null;
       if (!canvas) return;
@@ -326,36 +308,20 @@
       if (!ctx) return;
 
       isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const isMobile = window.innerWidth <= 768;
 
-      resize();
+      resize(); // resize() calls drawBackground+drawStars when isReduced
 
-      if (isReduced || isMobile) {
-        drawStatic();
-        (window as any).__cosmicResizeFn = resize;
-        window.addEventListener('resize', resize, { passive: true });
-        return;
+      if (!isReduced) {
+        raf = requestAnimationFrame(frame);
       }
-
-      // Scroll awareness — drop frame rate while scrolling so the main thread
-      // stays free for compositor work. Visual impact: beams barely move during
-      // scroll (they're slow anyway), full animation resumes instantly after.
-      isScrolling = false;
-      const scrollFn = () => {
-        isScrolling = true;
-        clearTimeout(scrollTimer);
-        scrollTimer = window.setTimeout(() => { isScrolling = false; }, 200) as unknown as number;
-      };
-      (window as any).__cosmicScrollFn = scrollFn;
-      window.addEventListener('scroll', scrollFn, { passive: true });
-
-      lastFrameTime = 0;
-      raf = requestAnimationFrame(frame);
 
       (window as any).__cosmicResizeFn = resize;
       window.addEventListener('resize', resize, { passive: true });
     }
 
+    // Guard against astro:page-load listener accumulation across HMR
+    // re-evaluations. Each new IIFE creates a new boot reference; storing
+    // it on window lets us remove the previous one before adding the new one.
     const prevBoot = (window as any).__cosmicBootFn;
     if (prevBoot) document.removeEventListener('astro:page-load', prevBoot);
     (window as any).__cosmicBootFn = boot;

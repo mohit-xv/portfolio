@@ -155,22 +155,19 @@ const pageTitle = title === 'Mohit Singh'
   let raf = 0;
 
   function initLenis() {
-    if (lenis) { lenis.destroy(); cancelAnimationFrame(raf); lenis = null; }
+    if (lenis) { lenis.destroy(); cancelAnimationFrame(raf); }
 
+    // Respect prefers-reduced-motion — Lenis still fires scroll events but
+    // turns off the lerp so users with vestibular disorders aren't affected.
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // Touch devices (phones, tablets) already have smooth native momentum scroll
-    // built into iOS and Android. Lenis intercepting touch events competes with
-    // native momentum and makes mobile scroll feel rough instead of better.
-    const isTouch = navigator.maxTouchPoints > 1;
-
-    if (reduced || isTouch) return; // let the browser handle it natively
 
     lenis = new Lenis({
-      duration: 1.15,
+      duration: reduced ? 0 : 1.15,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
-      smoothWheel: true,
+      smoothWheel: !reduced,
+      touchMultiplier: 2,
     });
 
     function tick(time: number) {
