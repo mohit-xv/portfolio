@@ -30,10 +30,11 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          cache-dependency-path: site/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        working-directory: site
+        run: pnpm install --frozen-lockfile --ignore-workspace
 
       - name: Build site
         working-directory: site
