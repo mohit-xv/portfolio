@@ -41,13 +41,10 @@ import Button from '../ui/Button.astro';
   @media (max-width: 640px) {
     .contact-cta__inner {
       flex-direction: column;
-      gap: var(--space-10);
-      padding: var(--space-12) 0;
+      gap: var(--space-8);
     }
     .contact-cta__line {
-      /* Let it fill the mobile width — cinematic closing statement */
-      font-size: clamp(2rem, 9vw, 3rem);
-      max-width: none;
+      font-size: var(--text-2xl);
     }
   }
 </style>
