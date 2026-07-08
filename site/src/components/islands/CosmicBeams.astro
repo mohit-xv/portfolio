@@ -40,8 +40,6 @@
     // Defined in 1440×900 coordinate space (matches original SVG viewBox).
     const ORBIT_SCROLL_START = 0.05;   // page-fraction where ribbon begins drawing
     const ORBIT_SCROLL_END   = 0.97;   // page-fraction where ribbon is fully drawn
-    const ORBIT_K            = 65;     // spring stiffness
-    const ORBIT_D            = 24;     // spring damping
     const ORBIT_N            = 300;    // curve subdivision — higher = smoother arc
 
     const SEG1: [number,number][] = [[1100,70],[1500,110],[1600,200],[1480,340]];
@@ -89,9 +87,8 @@
     let isReduced  = false;
     let isHome     = false;
 
-    // Orbit spring state
+    // Orbit state — direct scroll tracking (no spring, Lenis already smooths scroll)
     let orbitProgress = 0;
-    let orbitVelocity = 0;
     let orbitTarget   = 0;
 
     // ── Beam helpers ─────────────────────────────────────────────────────────
@@ -187,18 +184,17 @@
     function drawOrbit(w: number, h: number) {
       if (!isHome || orbitProgress < 0.001) return;
       const n = Math.min(ORBIT_N + 1, Math.floor(orbitProgress * ORBIT_N) + 1);
-      // Three layers match original FlowingPath: outer bloom, mid corona, filament
-      strokeOrbitLayer(w, h, n, 52,  'rgba(192,160,98,0.055)', 22);
+      // Outer bloom — reduced blur radius (10px vs 22px = ~5× cheaper, higher opacity to compensate)
+      strokeOrbitLayer(w, h, n, 52,  'rgba(192,160,98,0.10)',  10);
       strokeOrbitLayer(w, h, n, 11,  'rgba(192,160,98,0.15)',   4);
       strokeOrbitLayer(w, h, n, 1.5, 'rgba(227,194,125,0.90)',  0);
     }
 
     function updateOrbitSpring() {
       if (!isHome) return;
-      const dt  = 1 / 60;
-      const err = orbitTarget - orbitProgress;
-      orbitVelocity  += (ORBIT_K * err - ORBIT_D * orbitVelocity) * dt;
-      orbitProgress   = Math.max(0, Math.min(1, orbitProgress + orbitVelocity * dt));
+      // Direct tracking — Lenis already provides smooth scroll values,
+      // no need for a second physics layer that causes visual lag.
+      orbitProgress = orbitTarget;
     }
 
     function onOrbitScroll() {
@@ -401,9 +397,8 @@
       isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       isHome    = window.location.pathname === '/';
 
-      // Reset orbit spring
+      // Reset orbit
       orbitProgress = 0;
-      orbitVelocity = 0;
       orbitTarget   = 0;
 
       if (isHome) {
