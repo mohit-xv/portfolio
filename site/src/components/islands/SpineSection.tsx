@@ -265,14 +265,14 @@ export default function SpineSection() {
             {/* Exhibit I — drifts in from the left */}
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <motion.a href={EXHIBITS[0].href} style={desktopEx1Style as any}
-              whileHover={{ y: -2, transition: { duration: DUR.fast } }}>
+              whileHover={{ y: -2, boxShadow: '0 0 28px rgba(192,160,98,0.18)', transition: { duration: DUR.fast } }}>
               <CardInner ex={EXHIBITS[0]} />
             </motion.a>
 
             {/* Exhibit II — drifts in from the right, staggered */}
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <motion.a href={EXHIBITS[1].href} style={desktopEx2Style as any}
-              whileHover={{ y: -2, transition: { duration: DUR.fast } }}>
+              whileHover={{ y: -2, boxShadow: '0 0 28px rgba(192,160,98,0.18)', transition: { duration: DUR.fast } }}>
               <CardInner ex={EXHIBITS[1]} />
             </motion.a>
           </div>
