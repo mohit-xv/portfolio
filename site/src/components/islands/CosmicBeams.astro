@@ -188,14 +188,18 @@
       cx.fillStyle = bg;
       cx.fillRect(0, 0, w, h);
 
-      // Soft golden glow anchored to the top-LEFT corner — a light source just
-      // beyond the frame's edge, like dawn breaking off-screen.
-      const glow = cx.createRadialGradient(0, 0, 0, 0, 0, h * 0.85);
-      glow.addColorStop(0,   c(MID, 0.14));
-      glow.addColorStop(0.4, c(MID, 0.06));
-      glow.addColorStop(1,   c(DEEP, 0));
+      // Soft golden glow anchored to the top-LEFT corner, spread along the top
+      // edge — reaches toward centre but fades out before it. Elliptical via
+      // a vertical scale so it hugs the top like dawn light.
+      cx.save();
+      cx.scale(1, 0.55);
+      const glow = cx.createRadialGradient(0, 0, 0, 0, 0, w * 0.48);
+      glow.addColorStop(0,    c(MID, 0.15));
+      glow.addColorStop(0.45, c(MID, 0.06));
+      glow.addColorStop(1,    c(DEEP, 0));
       cx.fillStyle = glow;
-      cx.fillRect(0, 0, w, h);
+      cx.fillRect(0, 0, w, h * 2);
+      cx.restore();
 
       bgSprite = cv;
     }
@@ -347,54 +351,54 @@
     // Sprite baked once (blurs included); per frame it's one drawImage with
     // translate/rotate/globalAlpha — follows the same caching pattern as beams.
 
-    const METEOR_TAIL = 240; // tail length within the sprite (CSS px)
-    const METEOR_H    = 30;  // sprite height (room for the head halo)
-    const METEOR_PAD  = 16;  // room beyond the head for its glow
+    const METEOR_TAIL = 260; // tail length within the sprite (CSS px)
+    const METEOR_H    = 44;  // sprite height (room for the bigger head halo)
+    const METEOR_PAD  = 24;  // room beyond the head for its glow
 
     function bakeMeteorSprite() {
       const [cv, cx] = makeOffscreen(METEOR_TAIL + METEOR_PAD, METEOR_H);
       const cy    = METEOR_H / 2;
       const headX = METEOR_TAIL;
 
-      // Wide soft tail underlayer — the atmospheric glow around the streak
+      // Soft golden tail underlayer — slim atmospheric glow along the streak
       const soft = cx.createLinearGradient(0, 0, headX, 0);
-      soft.addColorStop(0,    'rgba(180,205,255,0)');
-      soft.addColorStop(0.55, 'rgba(190,212,255,0.10)');
-      soft.addColorStop(0.85, 'rgba(215,230,255,0.22)');
-      soft.addColorStop(1,    'rgba(235,242,255,0.30)');
-      cx.filter = 'blur(4px)';
+      soft.addColorStop(0,    'rgba(192,160,98,0)');
+      soft.addColorStop(0.55, 'rgba(227,194,125,0.14)');
+      soft.addColorStop(0.85, 'rgba(240,214,150,0.30)');
+      soft.addColorStop(1,    'rgba(255,238,190,0.42)');
+      cx.filter = 'blur(3px)';
       cx.beginPath();
       cx.moveTo(0, cy);
-      cx.lineTo(headX, cy - 3.2);
-      cx.lineTo(headX, cy + 3.2);
+      cx.lineTo(headX, cy - 2.4);
+      cx.lineTo(headX, cy + 2.4);
       cx.closePath();
       cx.fillStyle = soft;
       cx.fill();
 
-      // Sharp tapered filament — the bright streak itself
+      // Sharp tapered golden filament — hair-thin at the tail tip
       const tail = cx.createLinearGradient(0, 0, headX, 0);
-      tail.addColorStop(0,    'rgba(200,220,255,0)');
-      tail.addColorStop(0.45, 'rgba(210,228,255,0.28)');
-      tail.addColorStop(0.85, 'rgba(240,246,255,0.75)');
-      tail.addColorStop(1,    'rgba(255,255,255,1)');
-      cx.filter = 'blur(0.6px)';
+      tail.addColorStop(0,    'rgba(227,194,125,0)');
+      tail.addColorStop(0.45, 'rgba(227,194,125,0.35)');
+      tail.addColorStop(0.85, 'rgba(255,236,190,0.85)');
+      tail.addColorStop(1,    'rgba(255,248,220,1)');
+      cx.filter = 'blur(0.5px)';
       cx.beginPath();
       cx.moveTo(0, cy);
-      cx.lineTo(headX, cy - 1.1);
-      cx.lineTo(headX, cy + 1.1);
+      cx.lineTo(headX, cy - 0.9);
+      cx.lineTo(headX, cy + 0.9);
       cx.closePath();
       cx.fillStyle = tail;
       cx.fill();
 
-      // Head — hot white core inside a cool blue halo
+      // Head — big white-hot core inside a wide warm-gold halo
       cx.filter = 'none';
-      const halo = cx.createRadialGradient(headX, cy, 0, headX, cy, 9);
-      halo.addColorStop(0,    'rgba(255,255,255,0.95)');
-      halo.addColorStop(0.25, 'rgba(230,240,255,0.55)');
-      halo.addColorStop(0.6,  'rgba(190,215,255,0.18)');
-      halo.addColorStop(1,    'rgba(170,200,255,0)');
+      const halo = cx.createRadialGradient(headX, cy, 0, headX, cy, 18);
+      halo.addColorStop(0,    'rgba(255,252,240,1)');
+      halo.addColorStop(0.18, 'rgba(255,244,209,0.80)');
+      halo.addColorStop(0.45, 'rgba(240,208,140,0.32)');
+      halo.addColorStop(1,    'rgba(210,175,110,0)');
       cx.beginPath();
-      cx.arc(headX, cy, 9, 0, Math.PI * 2);
+      cx.arc(headX, cy, 18, 0, Math.PI * 2);
       cx.fillStyle = halo;
       cx.fill();
 
@@ -421,7 +425,7 @@
         vy:    Math.sin(angle) * speed,
         born:  now,
         dur:   700 + Math.random() * 500,      // burns out in under ~1.2s
-        scale: 0.8 + Math.random() * 0.5,
+        scale: 1.0 + Math.random() * 0.5,
       });
     }
 
