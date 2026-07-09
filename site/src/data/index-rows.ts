@@ -37,9 +37,9 @@ export const indexRows: IndexRow[] = [
     description: 'commissioned work',
     stack: 'Premiere · After Effects',
     year: 'MMXXIV',
-    status: '↗',
-    href: '#', // TODO: supply reel / portfolio link
-    external: true,
+    status: '→',
+    href: '/about', // interim — swap to the reel link when supplied
+    external: false,
   },
   {
     title: 'GitHub',
