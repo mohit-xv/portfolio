@@ -49,6 +49,8 @@ def lambda_handler(event, context):
 
     if not all([name, email, message, ctx]):
         return _error(400, "Missing required fields")
+    if len(name) > 100 or len(email) > 254 or len(ctx) > 50:
+        return _error(400, "Field too long")
     if len(message) > 2000:
         return _error(400, "Message too long")
     if "@" not in email or "." not in email.split("@")[-1]:

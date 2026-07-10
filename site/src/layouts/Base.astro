@@ -125,22 +125,27 @@ const pageTitle = title === 'Mohit Singh'
    * elements when they enter the viewport. CSS in global.css handles the
    * transition. Re-runs on View Transition navigation.
    */
+  let io: IntersectionObserver | null = null;
+
   function initReveal() {
-    const io = new IntersectionObserver(
+    // Drop the previous page's observer — its elements are gone after the swap
+    io?.disconnect();
+    io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('is-visible');
-            io.unobserve(entry.target);
+            io!.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.12 }
     );
-    document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+    document.querySelectorAll('[data-reveal]').forEach((el) => io!.observe(el));
   }
 
-  initReveal();
+  // astro:page-load fires on the initial load AND after every View Transition —
+  // a direct call here as well would double-init on first load.
   document.addEventListener('astro:page-load', initReveal);
 </script>
 
@@ -182,9 +187,8 @@ const pageTitle = title === 'Mohit Singh'
     raf = requestAnimationFrame(tick);
   }
 
-  initLenis();
-
-  // Re-init after View Transitions navigation so smooth scroll works on each page
+  // astro:page-load covers the initial load too — a direct initLenis() call
+  // here would create-and-destroy an extra Lenis instance on first load.
   document.addEventListener('astro:page-load', initLenis);
 </script>
 
@@ -195,24 +199,28 @@ const pageTitle = title === 'Mohit Singh'
    * variable), and updates are batched to one write per frame via rAF.
    * Runs on every page; re-syncs on Astro View Transition navigation.
    */
-  function initScrollProgress() {
-    const bar = document.querySelector<HTMLElement>('.scroll-progress');
+  // One window-level scroll listener for the whole session; only the bar
+  // element reference is refreshed per navigation. (Re-adding the listener
+  // in a per-page init leaks one listener per View Transition.)
+  let bar: HTMLElement | null = null;
+  let ticking = false;
+
+  const update = () => {
+    ticking = false;
     if (!bar) return;
-    let ticking = false;
-    const update = () => {
-      ticking = false;
-      const max = document.documentElement.scrollHeight - window.innerHeight;
-      const pct = max > 0 ? window.scrollY / max : 0;
-      bar.style.transform = `scaleX(${pct.toFixed(4)})`;
-    };
-    const onScroll = () => {
-      if (!ticking) { ticking = true; requestAnimationFrame(update); }
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = max > 0 ? window.scrollY / max : 0;
+    bar.style.transform = `scaleX(${pct.toFixed(4)})`;
+  };
+  const onScroll = () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
+  document.addEventListener('astro:page-load', () => {
+    bar = document.querySelector<HTMLElement>('.scroll-progress');
     update();
-  }
-  initScrollProgress();
-  document.addEventListener('astro:page-load', initScrollProgress);
+  });
 </script>
 
 <script>
@@ -234,7 +242,8 @@ const pageTitle = title === 'Mohit Singh'
     );
   }
 
-  trackPageView();
+  // astro:page-load fires on the initial load as well — calling trackPageView()
+  // directly here too double-counted every fresh visit in analytics.
   document.addEventListener('astro:page-load', trackPageView);
 </script>
 </html>

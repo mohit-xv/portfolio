@@ -12,6 +12,27 @@ resource "aws_s3_bucket_versioning" "site" {
   versioning_configuration { status = "Enabled" }
 }
 
+# Versioning + the deploy's sync/--delete means every overwritten or deleted
+# object leaves a noncurrent version behind forever. Expire them after 30 days
+# so storage can't creep — 30 days still leaves a full month of rollback.
+resource "aws_s3_bucket_lifecycle_configuration" "site" {
+  bucket = aws_s3_bucket.site.id
+
+  rule {
+    id     = "expire-noncurrent-versions"
+    status = "Enabled"
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 30
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
 resource "aws_s3_bucket_public_access_block" "site" {
   bucket                  = aws_s3_bucket.site.id
   block_public_acls       = true
@@ -54,6 +75,33 @@ resource "aws_cloudfront_function" "url_rewrite" {
   EOT
 }
 
+# ── Security response headers — HSTS, nosniff, clickjacking, referrer ────────
+# Applied at the edge to every response. No effect on page rendering.
+
+resource "aws_cloudfront_response_headers_policy" "security" {
+  name    = "${var.project}-security-headers"
+  comment = "HSTS + nosniff + frame deny + referrer policy"
+
+  security_headers_config {
+    strict_transport_security {
+      access_control_max_age_sec = 31536000 # 1 year
+      include_subdomains         = true
+      override                   = true
+    }
+    content_type_options {
+      override = true
+    }
+    frame_options {
+      frame_option = "DENY"
+      override     = true
+    }
+    referrer_policy {
+      referrer_policy = "strict-origin-when-cross-origin"
+      override        = true
+    }
+  }
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -69,11 +117,12 @@ resource "aws_cloudfront_distribution" "site" {
 
   # Default: long-cache for hashed assets (_astro/* has content-hash filenames)
   default_cache_behavior {
-    target_origin_id       = "S3-${var.project}"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
-    compress               = true
+    target_origin_id           = "S3-${var.project}"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
 
     forwarded_values {
       query_string = false
@@ -92,12 +141,13 @@ resource "aws_cloudfront_distribution" "site" {
 
   # HTML pages — short cache so a re-deploy is reflected quickly
   ordered_cache_behavior {
-    path_pattern           = "*.html"
-    target_origin_id       = "S3-${var.project}"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    compress               = true
+    path_pattern               = "*.html"
+    target_origin_id           = "S3-${var.project}"
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.security.id
 
     forwarded_values {
       query_string = false

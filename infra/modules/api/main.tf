@@ -149,6 +149,15 @@ resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.this.id
   name        = "$default"
   auto_deploy = true
+
+  # Throttle all routes — without this, anyone can hammer /api/contact
+  # (each request = an SES send) or flood /api/analytics with writes.
+  # Real traffic is a handful of requests per page view; these limits are
+  # generous for humans and a wall for scripts.
+  default_route_settings {
+    throttling_rate_limit  = 10 # sustained requests/second
+    throttling_burst_limit = 25
+  }
 }
 
 # Contact

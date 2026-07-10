@@ -29,8 +29,14 @@ resource "aws_iam_role" "github_deploy" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          # Scoped to your repo — push to any branch or tag triggers are covered
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_owner}/${var.github_repo}:*"
+          # Scoped tighter than repo:* — only the production environment (the
+          # deploy workflow declares `environment: production`) or a direct
+          # main-branch ref can assume this role. A compromised feature branch
+          # or PR workflow can no longer overwrite the live site bucket.
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:${var.github_owner}/${var.github_repo}:environment:production",
+            "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/main",
+          ]
         }
       }
     }]

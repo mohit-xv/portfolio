@@ -93,6 +93,8 @@
     let raf       = 0;
     let isReduced = false;
     let dpr       = 1;
+    let lastW     = 0;   // previous viewport size — detects height-only resizes
+    let lastH     = 0;   // (mobile URL bar) so the sky isn't re-randomized mid-scroll
 
     // ── Offscreen helper ──────────────────────────────────────────────────────
     function makeOffscreen(wCss: number, hCss: number): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -479,6 +481,17 @@
       dpr = Math.min(window.devicePixelRatio ?? 1, 2);
       const w = window.innerWidth;
       const h = window.innerHeight;
+
+      // Mobile browsers fire resize when the URL bar collapses/expands during
+      // scroll — only the height changes. Re-seeding stars/beams there makes
+      // the whole sky visibly jump to new random positions mid-scroll. So:
+      //   - unchanged size  → nothing to do
+      //   - height-only     → re-bake sprites/canvas, KEEP all positions
+      //   - width changed   → full re-seed (real window resize / rotation)
+      if (w === lastW && h === lastH) return;
+      const reseed = lastW === 0 || w !== lastW;
+      lastW = w; lastH = h;
+
       canvas.width  = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       canvas.style.width  = `${w}px`;
@@ -493,13 +506,18 @@
       for (let layer = 1; layer <= LAYERS; layer++) {
         beamSprites.push(bakeBeamSprites(h, layer));
       }
-      beams = [];
-      for (let layer = 1; layer <= LAYERS; layer++) {
-        for (let i = 0; i < BEAMS_PER_LAYER; i++) {
-          beams.push(makeBeam(w, h, layer));
+      if (reseed) {
+        beams = [];
+        for (let layer = 1; layer <= LAYERS; layer++) {
+          for (let i = 0; i < BEAMS_PER_LAYER; i++) {
+            beams.push(makeBeam(w, h, layer));
+          }
         }
+        makeStars(w, h);
+      } else {
+        // Height-only: beam sprite length follows h — keep positions in sync
+        for (const b of beams) b.length = h * 2.4;
       }
-      makeStars(w, h);
 
       // In reduced-motion mode there is no RAF loop — redraw the static frame
       // so a window resize doesn't leave the canvas permanently blank.
@@ -566,6 +584,7 @@
       meteors = [];
       nextMeteorAt = 0;
       lastNow = 0;
+      lastW = 0; // force a full re-seed — each boot targets a fresh canvas element
 
       resize(); // resize() bakes sprites and draws the static frame when isReduced
 

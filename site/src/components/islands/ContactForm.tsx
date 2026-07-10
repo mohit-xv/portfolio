@@ -13,7 +13,7 @@
  * In local dev with no site key, the widget is skipped — the Lambda accepts
  * submissions with an empty token when TURNSTILE_SECRET_KEY is not set.
  */
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { FormEvent } from 'react';
 
 const API_URL = import.meta.env.PUBLIC_API_URL;
@@ -21,10 +21,58 @@ const TURNSTILE_SITE_KEY = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY;
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
+// Minimal surface of the Turnstile API loaded by api.js in Base.astro
+interface TurnstileAPI {
+  render:  (el: HTMLElement, opts: { sitekey: string; theme: string }) => string;
+  reset:   (id: string) => void;
+  remove:  (id: string) => void;
+}
+
 export default function ContactForm() {
   const [status, setStatus]     = useState<Status>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const formRef                 = useRef<HTMLFormElement>(null);
+  const turnstileRef            = useRef<HTMLDivElement>(null);
+  const widgetIdRef             = useRef<string | null>(null);
+
+  // Render the Turnstile widget EXPLICITLY. The api.js script auto-scans the
+  // DOM only once, when it first executes — which is before this island
+  // hydrates, and never again after an Astro View Transition navigation.
+  // Relying on auto-render left the widget (and its token) missing, so the
+  // Lambda rejected real submissions with "Bot verification failed".
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    let cancelled = false;
+
+    const tryRender = () => {
+      if (cancelled || !turnstileRef.current) return;
+      const ts = (window as unknown as { turnstile?: TurnstileAPI }).turnstile;
+      if (!ts) { setTimeout(tryRender, 200); return; } // script still loading
+      if (widgetIdRef.current === null && turnstileRef.current.childElementCount === 0) {
+        widgetIdRef.current = ts.render(turnstileRef.current, {
+          sitekey: TURNSTILE_SITE_KEY,
+          theme:   'dark',
+        });
+      }
+    };
+    tryRender();
+
+    return () => {
+      cancelled = true;
+      const ts = (window as unknown as { turnstile?: TurnstileAPI }).turnstile;
+      if (widgetIdRef.current !== null) {
+        ts?.remove(widgetIdRef.current);
+        widgetIdRef.current = null;
+      }
+    };
+  }, []);
+
+  // Turnstile tokens are single-use — after a failed submit the widget must be
+  // reset or every retry re-sends the consumed token and fails verification.
+  function resetTurnstile() {
+    const ts = (window as unknown as { turnstile?: TurnstileAPI }).turnstile;
+    if (widgetIdRef.current !== null) ts?.reset(widgetIdRef.current);
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -53,10 +101,12 @@ export default function ContactForm() {
       } else {
         setStatus('error');
         setErrorMsg(json.error ?? 'Something went wrong — please try again.');
+        resetTurnstile();
       }
     } catch {
       setStatus('error');
       setErrorMsg('Could not reach the server — check your connection and try again.');
+      resetTurnstile();
     }
   }
 
@@ -116,11 +166,10 @@ export default function ContactForm() {
       </div>
 
       {TURNSTILE_SITE_KEY && (
-        <div
-          className="cf-turnstile"
-          data-sitekey={TURNSTILE_SITE_KEY}
-          data-theme="dark"
-        />
+        // Explicit-render container (see useEffect above). Deliberately NOT
+        // class="cf-turnstile" — that would also trigger auto-render and
+        // could produce a second widget on a fresh page load.
+        <div ref={turnstileRef} />
       )}
 
       {status === 'error' && (

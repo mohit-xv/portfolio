@@ -48,10 +48,13 @@ def lambda_handler(event, context):
 
     try:
         table.put_item(Item={
-            "page":     page,
-            "ts_id":    f"{ts_ms}#{uuid.uuid4().hex[:8]}",
-            "referrer": referrer,
-            "visitor":  visitor,
+            "page":       page,
+            "ts_id":      f"{ts_ms}#{uuid.uuid4().hex[:8]}",
+            "referrer":   referrer,
+            "visitor":    visitor,
+            # DynamoDB TTL is configured on this attribute (epoch seconds) —
+            # rows auto-expire after 90 days so the table can't grow unbounded
+            "expires_at": int(time.time()) + 90 * 86400,
         })
     except Exception:
         pass  # Best-effort — never fail the frontend
